@@ -1,0 +1,29 @@
+{
+  "name": "Deucarian.TemplateViewerWeb.Tests.EditMode",
+  "rootNamespace": "Deucarian.TemplateViewerWeb.Tests",
+  "references": [
+    "Deucarian.CommandRouting",
+    "Deucarian.TemplateViewerWeb",
+    "Deucarian.ViewerNavigation",
+    "Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "Newtonsoft.Json.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@deucarian/template-viewer-web-harness",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

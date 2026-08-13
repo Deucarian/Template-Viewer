@@ -1,0 +1,27 @@
+{
+  "name": "Deucarian.TemplateViewerWeb",
+  "rootNamespace": "Deucarian.TemplateViewerWeb",
+  "references": [
+    "Deucarian.API",
+    "Deucarian.CommandRouting",
+    "Deucarian.CommandRouting.WebGLIntegration",
+    "Deucarian.Diagnostics",
+    "Deucarian.Logging",
+    "Deucarian.ObjectLoading",
+    "Deucarian.ObjectLoading.APIIntegration",
+    "Deucarian.Theming",
+    "Deucarian.UI",
+    "Deucarian.ViewerNavigation",
+    "Newtonsoft.Json",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
