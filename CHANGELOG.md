@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.3] - 2026-08-14
+
+- Removed the unused direct Common dependency so the template contract matches
+  its actual assembly usage and passes the authoritative dependency audit.
+
 ## [0.1.2] - 2026-08-14
 
 - Made the sample composition resolve Viewer Navigation's canonical reference preset,
