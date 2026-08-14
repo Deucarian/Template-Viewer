@@ -41,6 +41,10 @@ namespace Deucarian.TemplateViewerWeb
         public bool IframeMode => iframeMode;
         public string ParentOrigin => parentOrigin;
         public WebViewerApplication Application => application;
+        public ViewerNavigationSettings ResolvedNavigationSettings =>
+            navigationSettings != null
+                ? navigationSettings
+                : ViewerNavigationSettings.LoadReferencePreset();
 
         private void Start()
         {
@@ -126,7 +130,7 @@ namespace Deucarian.TemplateViewerWeb
             ViewerNavigationInstaller navigation = ViewerNavigationInstaller.Create(
                 transform,
                 viewerCamera,
-                navigationSettings);
+                ResolvedNavigationSettings);
             navigation.BeginReferenceLoad();
 
             IApiClient apiClient = ApiClientFactory.Create(apiClientConfig);

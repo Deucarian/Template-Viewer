@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2] - 2026-08-14
+
+- Made the sample composition resolve Viewer Navigation's canonical reference preset,
+  giving new viewer projects the same controls, transition timing, framing tuning,
+  toolbar, and view-cube defaults as Report Viewer.
+- Added parity coverage so the generic template cannot silently fall back to a
+  different navigation configuration.
+
 ## [0.1.1] - 2026-08-14
 
 - Replaced the provisional browser host with the canonical WebGL Integration 0.1.1 distributable.
