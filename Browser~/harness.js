@@ -1,23 +1,26 @@
 import { DeucarianCommandHost } from "./deucarian-command-host.js";
 
 const output = document.querySelector("#events");
+const iframe = document.querySelector("#viewer");
 let revision = 0;
 const host = new DeucarianCommandHost({
-  mode: "iframe",
-  targetWindow: document.querySelector("#viewer").contentWindow,
+  iframe,
   targetOrigin: window.location.origin,
-  allowedOrigins: [window.location.origin],
-  transportId: "web-viewer",
-  onReady: () => write("transport ready"),
-  onResponse: value => write("response " + JSON.stringify(value)),
-  onEvent: value => write("event " + JSON.stringify(value))
+  transportId: "web-viewer"
 });
 
+host.on("deucarian-command-ready", () => write("transport ready"));
+host.on("deucarian-command-response", value =>
+  write("response " + JSON.stringify(value)));
+host.on("deucarian-command-event", value =>
+  write("event " + JSON.stringify(value)));
+host.on("deucarian-command-error", value =>
+  write("error " + JSON.stringify(value)));
 host.start();
 
 function send(command, payload = {}) {
   revision += 1;
-  host.send({
+  host.sendCommand({
     protocol_version: 1,
     command_id: `harness-${revision}`,
     command,
@@ -36,7 +39,7 @@ document.querySelector("#green-blue").onclick = () => send("select_elements", { 
 document.querySelector("#clear").onclick = () => send("clear_selection");
 document.querySelector("#invalid").onclick = () => send("select_elements", { element_ids: ["missing"] });
 document.querySelector("#stale").onclick = () => {
-  host.send({
+  host.sendCommand({
     protocol_version: 1,
     command_id: "harness-stale",
     command: "select_elements",
