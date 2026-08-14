@@ -20,6 +20,7 @@
   "requiredDependencies": [
     "com.deucarian.api",
     "com.deucarian.build-pipeline",
+    "com.deucarian.camera-navigation",
     "com.deucarian.command-routing",
     "com.deucarian.command-routing.webgl-integration",
     "com.deucarian.common",

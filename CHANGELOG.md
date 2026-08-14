@@ -5,6 +5,7 @@
 - Replaced the provisional browser host with the canonical WebGL Integration 0.1.1 distributable.
 - Updated the harness to the supported listener and `sendCommand` API and added executable lifecycle coverage.
 - Aligned the template with the two-consumer-proven shared package versions.
+- Declared Camera Navigation directly because the template composition consumes types exposed by Viewer Navigation's public installer API.
 
 ## [0.1.0] - 2026-08-13
 

@@ -3,6 +3,7 @@
   "rootNamespace": "Deucarian.TemplateViewerWeb",
   "references": [
     "Deucarian.API",
+    "Deucarian.CameraNavigation",
     "Deucarian.CommandRouting",
     "Deucarian.CommandRouting.WebGLIntegration",
     "Deucarian.Diagnostics",
