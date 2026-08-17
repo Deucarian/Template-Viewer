@@ -4,9 +4,9 @@
 for browser-hosted Unity viewers. It uses the reusable Deucarian stack instead
 of copying a viewer application:
 
-- Viewer Navigation supplies Orbit/Fly, Top Down, Return to Origin, toolbar,
-  pointer/input coordination, and an optional six-face view cube that is off by
-  default. With no intentional
+- Viewer Navigation supplies Orbit/Fly, Top Down, Return to Origin, the polished
+  Report Viewer-proven icon toolbar and interactions, pointer/input coordination,
+  and an optional six-face view cube that is off by default. With no intentional
   override, it loads the same packaged reference preset used by Report Viewer;
 - Command Routing and its WebGL Integration supply canonical envelopes,
   direct-page and secure iframe transport, ready handshake, and cleanup;
