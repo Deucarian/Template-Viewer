@@ -2,7 +2,7 @@
 
 Open `Scenes/WebViewer.unity` and enter Play Mode. The bootstrap creates a
 camera, light, three generic elements (`red`, `green`, and `blue`), the Viewer
-Navigation toolbar and view cube, status UI, Object Loading adapter, and secure
+Navigation toolbar, optional view cube (off by default), status UI, Object Loading adapter, and secure
 browser command host.
 
 The embedded model is used when `initialize_viewer` omits `model_url`. Supplying
