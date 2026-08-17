@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5] - 2026-08-17
+
+- Updated to Viewer Navigation 0.1.4 and Web Viewer Suite 0.1.4 so newly
+  imported viewers receive the polished Report Viewer icon toolbar,
+  theme-driven interactions, and runtime tooltips from the shared package.
+- Kept the optional view cube disabled by default.
+
 ## [0.1.4] - 2026-08-17
 
 - Updated to Viewer Navigation 0.1.3 and Web Viewer Suite 0.1.3 so fresh
