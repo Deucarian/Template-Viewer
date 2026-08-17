@@ -1,3 +1,4 @@
+using Deucarian.Theming;
 using Deucarian.UI;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,19 +8,49 @@ namespace Deucarian.TemplateViewerWeb
     [DisallowMultipleComponent]
     public sealed class WebViewerStatusOverlay : MonoBehaviour
     {
+        private static readonly Color FallbackSurfaceColor =
+            new Color(0.035f, 0.055f, 0.09f, 0.92f);
+        private static readonly Color FallbackTextColor =
+            new Color(0.86f, 0.91f, 1f, 1f);
+        private static readonly Color FallbackErrorColor =
+            new Color(1f, 0.55f, 0.52f, 1f);
+
         private GameObject panel;
+        private Image background;
+        private Outline outline;
         private Text statusText;
         private WebViewerApplication application;
+        private DeucarianThemeProvider themeProvider;
+        private DeucarianTheme currentTheme;
+        private bool currentFailed;
+
+        public DeucarianTheme CurrentTheme => currentTheme;
+        public Color EffectiveSurfaceColor { get; private set; } =
+            FallbackSurfaceColor;
+        public Color EffectiveTextColor { get; private set; } =
+            FallbackTextColor;
+        public Color EffectiveErrorColor { get; private set; } =
+            FallbackErrorColor;
+        public Color RenderedSurfaceColor => background != null
+            ? background.color
+            : EffectiveSurfaceColor;
+        public Color RenderedStatusColor => statusText != null
+            ? statusText.color
+            : currentFailed ? EffectiveErrorColor : EffectiveTextColor;
 
         public void Initialize(WebViewerApplication viewerApplication)
         {
-            if (application != null)
-            {
-                application.LifecycleChanged -= OnLifecycleChanged;
-                application.LoadingProgressChanged -= OnLoadingProgressChanged;
-            }
+            Initialize(viewerApplication, null);
+        }
+
+        public void Initialize(
+            WebViewerApplication viewerApplication,
+            DeucarianThemeProvider provider)
+        {
+            UnbindApplication();
 
             application = viewerApplication;
+            BindThemeProvider(provider);
             EnsureUi();
             if (application != null)
             {
@@ -27,6 +58,12 @@ namespace Deucarian.TemplateViewerWeb
                 application.LoadingProgressChanged += OnLoadingProgressChanged;
                 OnLifecycleChanged(application.Lifecycle);
             }
+        }
+
+        public void ApplyTheme(DeucarianTheme theme)
+        {
+            currentTheme = theme;
+            EnsureUi();
         }
 
         public void ShowFatalConfigurationError()
@@ -37,12 +74,61 @@ namespace Deucarian.TemplateViewerWeb
 
         private void OnDestroy()
         {
-            if (application != null)
+            UnbindApplication();
+            UnbindThemeProvider();
+        }
+
+        private void UnbindApplication()
+        {
+            if (application == null)
             {
-                application.LifecycleChanged -= OnLifecycleChanged;
-                application.LoadingProgressChanged -= OnLoadingProgressChanged;
-                application = null;
+                return;
             }
+
+            application.LifecycleChanged -= OnLifecycleChanged;
+            application.LoadingProgressChanged -= OnLoadingProgressChanged;
+            application = null;
+        }
+
+        private void BindThemeProvider(DeucarianThemeProvider provider)
+        {
+            UnbindThemeProvider();
+            themeProvider = provider;
+            if (themeProvider == null)
+            {
+                return;
+            }
+
+            themeProvider.ThemeChanged += OnThemeChanged;
+            themeProvider.StyleChanged += OnThemeStyleChanged;
+            currentTheme = themeProvider.CurrentTheme;
+        }
+
+        private void UnbindThemeProvider()
+        {
+            if (themeProvider == null)
+            {
+                return;
+            }
+
+            themeProvider.ThemeChanged -= OnThemeChanged;
+            themeProvider.StyleChanged -= OnThemeStyleChanged;
+            themeProvider = null;
+        }
+
+        private void OnThemeChanged(DeucarianTheme theme)
+        {
+            ApplyTheme(theme);
+        }
+
+        private void OnThemeStyleChanged(DeucarianThemeStyle style)
+        {
+            if (themeProvider != null)
+            {
+                currentTheme = themeProvider.CurrentTheme;
+            }
+
+            EnsureUi();
         }
 
         private void OnLifecycleChanged(WebViewerLifecycleState lifecycle)
@@ -81,6 +167,7 @@ namespace Deucarian.TemplateViewerWeb
         {
             if (panel != null)
             {
+                ApplyResolvedTheme();
                 return;
             }
 
@@ -110,13 +197,8 @@ namespace Deucarian.TemplateViewerWeb
             rect.anchoredPosition = new Vector2(18f, 18f);
             rect.sizeDelta = new Vector2(300f, 42f);
 
-            Image background = panel.GetComponent<Image>();
-            Color surface = new Color(0.035f, 0.055f, 0.09f, 0.92f);
-            DeucarianUGUIGlassPanel.ApplyImage(background, null, surface);
-            DeucarianUGUIGlassPanel.ApplyOutline(
-                panel.GetComponent<Outline>(),
-                surface,
-                null);
+            background = panel.GetComponent<Image>();
+            outline = panel.GetComponent<Outline>();
 
             GameObject textObject = new GameObject(
                 "Label",
@@ -127,21 +209,80 @@ namespace Deucarian.TemplateViewerWeb
             statusText.font = GetBuiltinFont();
             statusText.fontSize = 14;
             statusText.alignment = TextAnchor.MiddleLeft;
-            statusText.color = new Color(0.86f, 0.91f, 1f, 1f);
             RectTransform textRect = statusText.rectTransform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = new Vector2(14f, 0f);
             textRect.offsetMax = new Vector2(-14f, 0f);
+            ApplyResolvedTheme();
         }
 
         private void SetStatus(string value, bool failed)
         {
+            currentFailed = failed;
             EnsureUi();
             statusText.text = value;
-            statusText.color = failed
-                ? new Color(1f, 0.55f, 0.52f, 1f)
-                : new Color(0.86f, 0.91f, 1f, 1f);
+            ApplyStatusTextColor();
+        }
+
+        private void ApplyResolvedTheme()
+        {
+            EffectiveSurfaceColor = ResolveThemeColor(
+                DeucarianBuiltinColorRoleIds.SurfaceRaised,
+                FallbackSurfaceColor);
+            EffectiveTextColor = ResolveThemeColor(
+                DeucarianBuiltinColorRoleIds.TextPrimary,
+                FallbackTextColor);
+            EffectiveErrorColor = ResolveThemeColor(
+                DeucarianBuiltinColorRoleIds.Error,
+                FallbackErrorColor);
+
+            DeucarianThemeStyle style = themeProvider != null
+                ? themeProvider.CurrentStyle
+                : currentTheme != null ? currentTheme.VisualStyle : null;
+            bool appliedSurface = DeucarianUGUIGlassPanel.ApplyImage(
+                background,
+                currentTheme,
+                EffectiveSurfaceColor,
+                style);
+            if (!appliedSurface && background != null)
+            {
+                background.sprite = null;
+                background.type = Image.Type.Simple;
+                background.color = EffectiveSurfaceColor;
+            }
+
+            bool appliedOutline = DeucarianUGUIGlassPanel.ApplyOutline(
+                outline,
+                EffectiveSurfaceColor,
+                currentTheme,
+                style);
+            if (!appliedOutline && outline != null)
+            {
+                outline.effectColor = Color.clear;
+                outline.effectDistance = Vector2.zero;
+                outline.useGraphicAlpha = false;
+            }
+
+            ApplyStatusTextColor();
+        }
+
+        private void ApplyStatusTextColor()
+        {
+            if (statusText != null)
+            {
+                statusText.color = currentFailed
+                    ? EffectiveErrorColor
+                    : EffectiveTextColor;
+            }
+        }
+
+        private Color ResolveThemeColor(string roleId, Color fallback)
+        {
+            return currentTheme != null &&
+                   currentTheme.TryGetColorById(roleId, out Color color)
+                ? color
+                : fallback;
         }
 
         private static Font GetBuiltinFont()

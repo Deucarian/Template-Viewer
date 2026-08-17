@@ -5,6 +5,7 @@
     "Deucarian.CameraNavigation",
     "Deucarian.CommandRouting",
     "Deucarian.TemplateViewerWeb",
+    "Deucarian.Theming",
     "Deucarian.ViewerNavigation",
     "Newtonsoft.Json"
   ],

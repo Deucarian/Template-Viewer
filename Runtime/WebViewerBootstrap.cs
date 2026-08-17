@@ -9,6 +9,7 @@ using Deucarian.TemplateViewerWeb.Commands;
 using Deucarian.TemplateViewerWeb.Diagnostics;
 using Deucarian.TemplateViewerWeb.Loading;
 using Deucarian.TemplateViewerWeb.Selection;
+using Deucarian.Theming;
 using Deucarian.ViewerNavigation;
 using UnityEngine;
 
@@ -30,9 +31,8 @@ namespace Deucarian.TemplateViewerWeb
         [SerializeField] private GameObject embeddedReferenceModel;
         [SerializeField] private Transform loadedModelParent;
         [SerializeField] private ApiClientConfig apiClientConfig;
-        private Deucarian.ViewerNavigation.ViewerNavigationReferenceCompositionProfile
-            _navigationComposition =
-                Deucarian.ViewerNavigation.ViewerNavigationReferenceComposition.Resolve();
+        private ViewerNavigationReferenceCompositionProfile _navigationComposition;
+        private bool _hasResolvedNavigationComposition;
 
         private ObjectLoadingWebViewerModelLoader modelLoader;
         private WebViewerApplication application;
@@ -40,14 +40,21 @@ namespace Deucarian.TemplateViewerWeb
         private CommandTransportBridge<WebViewerApplication> commandBridge;
         private DiagnosticProviderRegistration diagnosticRegistration;
         private WebViewerStatusOverlay statusOverlay;
+        private ViewerNavigationInstaller navigationInstaller;
 
         public bool IframeMode => iframeMode;
         public string ParentOrigin => parentOrigin;
         public WebViewerApplication Application => application;
+        public ViewerNavigationReferenceCompositionProfile
+            ResolvedNavigationComposition => ResolveNavigationComposition();
         public ViewerNavigationSettings ResolvedNavigationSettings =>
-            navigationSettings != null
-                ? navigationSettings
-                : _navigationComposition.Preset;
+            ResolvedNavigationComposition.Preset;
+        public ViewerNavigationInstaller NavigationInstaller =>
+            navigationInstaller;
+        public DeucarianTheme CurrentTheme =>
+            navigationInstaller?.ThemeProvider?.CurrentTheme ??
+            ResolvedNavigationComposition.ThemeProfile.ResolveTheme(
+                ResolvedNavigationComposition.ThemeMode);
 
         private void Start()
         {
@@ -59,6 +66,7 @@ namespace Deucarian.TemplateViewerWeb
 
             try
             {
+                statusOverlay.ApplyTheme(CurrentTheme);
                 Compose();
             }
             catch (Exception exception)
@@ -115,6 +123,7 @@ namespace Deucarian.TemplateViewerWeb
             commandRuntime = null;
             diagnosticRegistration?.Dispose();
             diagnosticRegistration = null;
+            navigationInstaller = null;
             if (modelLoader != null)
             {
                 modelLoader.ProgressChanged -= OnModelLoadingProgress;
@@ -129,27 +138,7 @@ namespace Deucarian.TemplateViewerWeb
                 throw new InvalidOperationException(issue);
             }
 
-            EnsureSceneDependencies();
-
-            Deucarian.ViewerNavigation.ViewerNavigationReferenceCompositionProfile
-                composition = _navigationComposition;
-            if (navigationSettings == null)
-            {
-                composition = Deucarian.ViewerNavigation.ViewerNavigationReferenceComposition
-                    .Resolve();
-                _navigationComposition = composition;
-            }
-
-            ViewerNavigationInstaller navigation =
-                navigationSettings == null
-                    ? composition.Compose(transform, viewerCamera)
-                    : ViewerNavigationInstaller.Create(
-                        transform,
-                        viewerCamera,
-                        navigationSettings,
-                        composition.InputBlocker,
-                        composition.BoundsStrategy,
-                        composition.AnimationPolicy);
+            ViewerNavigationInstaller navigation = InstallNavigation();
             navigation.BeginReferenceLoad();
 
             IApiClient apiClient = ApiClientFactory.Create(apiClientConfig);
@@ -195,8 +184,33 @@ namespace Deucarian.TemplateViewerWeb
                 disposeTransport: true);
             diagnosticRegistration = DiagnosticProviderRegistry.Register(
                 new WebViewerApplicationDiagnosticProvider(application));
-            statusOverlay.Initialize(application);
+            statusOverlay.Initialize(application, navigation.ThemeProvider);
             commandBridge.Start();
+        }
+
+        private ViewerNavigationInstaller InstallNavigation()
+        {
+            EnsureSceneDependencies();
+            navigationInstaller =
+                ResolvedNavigationComposition.Compose(transform, viewerCamera);
+            return navigationInstaller;
+        }
+
+        private ViewerNavigationReferenceCompositionProfile
+            ResolveNavigationComposition()
+        {
+            if (_hasResolvedNavigationComposition)
+            {
+                return _navigationComposition;
+            }
+
+            ViewerNavigationReferenceCompositionProfile referenceComposition =
+                ViewerNavigationReferenceComposition.Resolve();
+            _navigationComposition = navigationSettings == null
+                ? referenceComposition
+                : referenceComposition.WithPreset(navigationSettings);
+            _hasResolvedNavigationComposition = true;
+            return _navigationComposition;
         }
 
         private void EnsureSceneDependencies()

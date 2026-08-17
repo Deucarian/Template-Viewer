@@ -5,9 +5,10 @@ for browser-hosted Unity viewers. It uses the reusable Deucarian stack instead
 of copying a viewer application:
 
 - Viewer Navigation supplies Orbit/Fly, Top Down, Return to Origin, the polished
-  Report Viewer-proven icon toolbar and interactions, pointer/input coordination,
+  shared-reference icon toolbar and interactions, pointer/input coordination,
   and an optional six-face view cube that is off by default. With no intentional
-  override, it loads the same packaged reference preset used by Report Viewer;
+  override, it loads the package's complete reference navigation composition,
+  including its canonical dark Frosted Glass theme and theme provider;
 - Command Routing and its WebGL Integration supply canonical envelopes,
   direct-page and secure iframe transport, ready handshake, and cleanup;
 - API, Object Loading, and their integration load AssetBundle content;
@@ -68,6 +69,12 @@ Selection updates only call `WebViewerVisibilityController`. They never call
 Viewer Navigation, so camera transform, projection, pivot, navigation mode,
 and current user position remain unchanged. Initial model registration frames
 once and captures Return to Origin after model placement.
+
+`WebViewerBootstrap.ResolvedNavigationComposition` exposes the exact cached
+composition used at runtime. `NavigationInstaller` exposes the installed
+controller/provider, while `CurrentTheme` and `WebViewerStatusOverlay.CurrentTheme`
+resolve to the same canonical theme. Supplying custom navigation settings only
+replaces the preset; input, bounds, animation, and theme policies stay shared.
 
 ## Browser security
 

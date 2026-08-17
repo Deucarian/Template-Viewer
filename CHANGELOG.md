@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.6] - 2026-08-17
+
+- Updated to Viewer Navigation 0.1.5, Web Viewer Suite 0.1.5, and Theming
+  1.0.4.
+- Cached and exposed the template's effective reference navigation composition,
+  including the shared preset, UI input blocker, mesh-bounds strategy, and
+  runtime-only animation policy, reference theme profile, and default dark mode.
+- Custom navigation settings now use the composition's `WithPreset` API so all
+  shared policies and theme object identities remain intact.
+- Installed and exposed the composition's theme provider and effective
+  `CurrentTheme`; the status overlay now resolves its surface, text, and error
+  roles from that theme and applies the shared Frosted Glass chrome style.
+- Added parity coverage for resolved settings and theme identities, EditMode
+  animation behavior, the installed controller/provider, and themed overlay.
+
 ## [0.1.5] - 2026-08-17
 
 - Updated to Viewer Navigation 0.1.4 and Web Viewer Suite 0.1.4 so newly
