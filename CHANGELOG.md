@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.4] - 2026-08-17
+
+- Updated to Viewer Navigation 0.1.3 and Web Viewer Suite 0.1.3 so fresh
+  template installs keep the optional view cube hidden by default.
+
 ## [0.1.3] - 2026-08-14
 
 - Removed the unused direct Common dependency so the template contract matches

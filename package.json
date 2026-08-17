@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.template.viewer.web",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "displayName": "Deucarian Web Viewer Template",
   "description": "Ready-to-run generic WebGL viewer template with secure browser commands, model loading, navigation, diagnostics, and project-owned build profiles.",
   "unity": "6000.0",
@@ -31,8 +31,8 @@
     "com.deucarian.object-loading.api-integration": "0.2.5",
     "com.deucarian.theming": "1.0.3",
     "com.deucarian.ui": "0.2.1",
-    "com.deucarian.viewer-navigation": "0.1.2",
-    "com.deucarian.web-viewer-suite": "0.1.2",
+    "com.deucarian.viewer-navigation": "0.1.3",
+    "com.deucarian.web-viewer-suite": "0.1.3",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.unity.ugui": "2.0.0"
   },
