@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.8] - 2026-08-17
+
+- Updated to Viewer Navigation 0.1.7 so the template composes the canonical
+  package-owned toolbar assets, chrome, pointer behavior, and input suppression
+  instead of carrying a consumer-specific presentation fork.
+- Updated to Theming 1.0.5 for the shared UI Toolkit theme and typography
+  adapter used by the reference navigation presentation.
+- Updated the Web Viewer Suite dependency to 0.1.7 and added parity coverage
+  for the installed toolbar element tree and resolved reference theme.
+
 ## [0.1.7] - 2026-08-17
 
 - Updated to the package-owned WebGL reduced-motion policy in Viewer Navigation

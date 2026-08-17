@@ -1,8 +1,10 @@
 using Deucarian.Theming;
 using Deucarian.ViewerNavigation;
+using Deucarian.ViewerNavigation.UI;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Deucarian.TemplateViewerWeb.Tests
 {
@@ -265,6 +267,127 @@ namespace Deucarian.TemplateViewerWeb.Tests
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        [Test]
+        public void BootstrapInstallsPackageOwnedCanonicalToolbarElementTree()
+        {
+            GameObject root = new GameObject("Template Toolbar Contract Test");
+            try
+            {
+                WebViewerBootstrap bootstrap =
+                    root.AddComponent<WebViewerBootstrap>();
+                MethodInfo installMethod = typeof(WebViewerBootstrap).GetMethod(
+                    "InstallNavigation",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(installMethod, Is.Not.Null);
+
+                ViewerNavigationInstaller installer =
+                    (ViewerNavigationInstaller)installMethod.Invoke(
+                        bootstrap,
+                        null);
+                ViewerNavigationToolbarPresenter presenter = installer.Toolbar;
+
+                Assert.That(presenter, Is.Not.Null);
+                Assert.That(
+                    presenter.GetType(),
+                    Is.EqualTo(typeof(ViewerNavigationToolbarPresenter)));
+                Assert.That(presenter.Document, Is.Not.Null);
+                Assert.That(presenter.Root, Is.Not.Null);
+                Assert.That(
+                    presenter.Root.name,
+                    Is.EqualTo(ViewerNavigationToolbarPresenter.RootName));
+                Assert.That(
+                    presenter.Root.pickingMode,
+                    Is.EqualTo(PickingMode.Ignore));
+
+                VisualElement toolbar = presenter.Root.Q<VisualElement>(
+                    ViewerNavigationToolbarPresenter.ToolbarName);
+                Assert.That(toolbar, Is.Not.Null);
+                Assert.That(
+                    toolbar.pickingMode,
+                    Is.EqualTo(PickingMode.Position));
+
+                AssertCanonicalButton(
+                    toolbar,
+                    ViewerNavigationToolbarPresenter.OrbitButtonName,
+                    ViewerNavigationToolbarPresenter.OrbitIconName,
+                    ViewerNavigationToolbarPresenter.OrbitTooltip);
+                AssertCanonicalButton(
+                    toolbar,
+                    ViewerNavigationToolbarPresenter.FlyButtonName,
+                    ViewerNavigationToolbarPresenter.FlyIconName,
+                    ViewerNavigationToolbarPresenter.FlyTooltip);
+                AssertCanonicalButton(
+                    toolbar,
+                    ViewerNavigationToolbarPresenter.HomeButtonName,
+                    ViewerNavigationToolbarPresenter.HomeIconName,
+                    ViewerNavigationToolbarPresenter.HomeTooltip);
+
+                Button topDown = toolbar.Q<Button>(
+                    ViewerNavigationToolbarPresenter.TopDownButtonName);
+                Assert.That(topDown, Is.Not.Null);
+                Assert.That(topDown.focusable, Is.True);
+                Assert.That(
+                    topDown.pickingMode,
+                    Is.EqualTo(PickingMode.Position));
+                Assert.That(
+                    topDown.tooltip,
+                    Is.EqualTo(ViewerNavigationToolbarPresenter.TopDownTooltip));
+                AssertIgnoredIcon(
+                    topDown,
+                    ViewerNavigationToolbarPresenter.TopDownIconName);
+                AssertIgnoredIcon(
+                    topDown,
+                    ViewerNavigationToolbarPresenter.PerspectiveIconName);
+
+                ViewerNavigationReferenceCompositionProfile composition =
+                    bootstrap.ResolvedNavigationComposition;
+                Assert.That(
+                    composition.ThemeProfile,
+                    Is.SameAs(DeucarianViewerReferenceThemePreset.Resolve()));
+                Assert.That(
+                    installer.ThemeProvider.CurrentTheme,
+                    Is.SameAs(
+                        composition.ThemeProfile.ResolveTheme(
+                            composition.ThemeMode)));
+                Assert.That(
+                    installer.Controller.InteractionGate,
+                    Is.Not.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static void AssertCanonicalButton(
+            VisualElement toolbar,
+            string buttonName,
+            string iconName,
+            string tooltip)
+        {
+            Button button = toolbar.Q<Button>(buttonName);
+            Assert.That(button, Is.Not.Null, buttonName);
+            Assert.That(button.focusable, Is.True, buttonName);
+            Assert.That(
+                button.pickingMode,
+                Is.EqualTo(PickingMode.Position),
+                buttonName);
+            Assert.That(button.tooltip, Is.EqualTo(tooltip), buttonName);
+            AssertIgnoredIcon(button, iconName);
+        }
+
+        private static void AssertIgnoredIcon(
+            VisualElement parent,
+            string iconName)
+        {
+            VisualElement icon = parent.Q<VisualElement>(iconName);
+            Assert.That(icon, Is.Not.Null, iconName);
+            Assert.That(
+                icon.pickingMode,
+                Is.EqualTo(PickingMode.Ignore),
+                iconName);
         }
     }
 }

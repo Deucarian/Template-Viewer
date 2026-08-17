@@ -9,7 +9,10 @@ of copying a viewer application:
   browser reduced-motion handling, and an optional six-face view cube that is
   off by default. With no intentional
   override, it loads the package's complete reference navigation composition,
-  including its canonical dark Frosted Glass theme and theme provider;
+  including its canonical dark Frosted Glass theme and theme provider. The
+  toolbar's UI Toolkit assets, control-island chrome, element tree, pointer
+  behavior, and movement-key suppression are package-owned; template consumers
+  must not recreate or restyle that presentation locally;
 - Command Routing and its WebGL Integration supply canonical envelopes,
   direct-page and secure iframe transport, ready handshake, and cleanup;
 - API, Object Loading, and their integration load AssetBundle content;
@@ -76,6 +79,11 @@ composition used at runtime. `NavigationInstaller` exposes the installed
 controller/provider, while `CurrentTheme` and `WebViewerStatusOverlay.CurrentTheme`
 resolve to the same canonical theme. Supplying custom navigation settings only
 replaces the preset; input, bounds, animation, and theme policies stay shared.
+The toolbar resolves colors, visual style, and theme mode through
+`com.deucarian.theming`; the template does not contain a parallel theme palette.
+Its public element names come from `ViewerNavigationToolbarPresenter`, so host
+automation can locate controls without taking ownership of their hierarchy or
+presentation.
 
 ## Browser security
 
