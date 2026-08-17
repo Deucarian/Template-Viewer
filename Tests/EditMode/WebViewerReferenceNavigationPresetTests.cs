@@ -1,4 +1,5 @@
 using Deucarian.ViewerNavigation;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -36,7 +37,27 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     Is.True);
                 Assert.That(
                     bootstrap.ResolvedNavigationSettings.ShowViewCube,
-                    Is.True);
+                    Is.False);
+                Assert.That(
+                    bootstrap.ResolvedNavigationSettings,
+                    Is.SameAs(preset),
+                    "Template defaults to the shared navigation preset.");
+
+                FieldInfo compositionField = typeof(WebViewerBootstrap)
+                    .GetField(
+                        "_navigationComposition",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(compositionField, Is.Not.Null);
+                var composition =
+                    (ViewerNavigationReferenceCompositionProfile)compositionField
+                        .GetValue(bootstrap);
+                Assert.That(composition.Preset, Is.SameAs(preset));
+                Assert.That(
+                    composition.InputBlocker,
+                    Is.TypeOf<ViewerNavigationUiInputBlocker>());
+                Assert.That(
+                    composition.BoundsStrategy,
+                    Is.TypeOf<DeucarianMeshBoundsStrategy>());
             }
             finally
             {

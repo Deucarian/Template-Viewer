@@ -30,6 +30,9 @@ namespace Deucarian.TemplateViewerWeb
         [SerializeField] private GameObject embeddedReferenceModel;
         [SerializeField] private Transform loadedModelParent;
         [SerializeField] private ApiClientConfig apiClientConfig;
+        private Deucarian.ViewerNavigation.ViewerNavigationReferenceCompositionProfile
+            _navigationComposition =
+                Deucarian.ViewerNavigation.ViewerNavigationReferenceComposition.Resolve();
 
         private ObjectLoadingWebViewerModelLoader modelLoader;
         private WebViewerApplication application;
@@ -44,7 +47,7 @@ namespace Deucarian.TemplateViewerWeb
         public ViewerNavigationSettings ResolvedNavigationSettings =>
             navigationSettings != null
                 ? navigationSettings
-                : ViewerNavigationSettings.LoadReferencePreset();
+                : _navigationComposition.Preset;
 
         private void Start()
         {
@@ -127,10 +130,26 @@ namespace Deucarian.TemplateViewerWeb
             }
 
             EnsureSceneDependencies();
-            ViewerNavigationInstaller navigation = ViewerNavigationInstaller.Create(
-                transform,
-                viewerCamera,
-                ResolvedNavigationSettings);
+
+            Deucarian.ViewerNavigation.ViewerNavigationReferenceCompositionProfile
+                composition = _navigationComposition;
+            if (navigationSettings == null)
+            {
+                composition = Deucarian.ViewerNavigation.ViewerNavigationReferenceComposition
+                    .Resolve();
+                _navigationComposition = composition;
+            }
+
+            ViewerNavigationInstaller navigation =
+                navigationSettings == null
+                    ? composition.Compose(transform, viewerCamera)
+                    : ViewerNavigationInstaller.Create(
+                        transform,
+                        viewerCamera,
+                        navigationSettings,
+                        composition.InputBlocker,
+                        composition.BoundsStrategy,
+                        composition.AnimationPolicy);
             navigation.BeginReferenceLoad();
 
             IApiClient apiClient = ApiClientFactory.Create(apiClientConfig);
