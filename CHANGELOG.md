@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7] - 2026-08-17
+
+- Updated to the package-owned WebGL reduced-motion policy in Viewer Navigation
+  0.1.6 and asserted that the template uses that shared default rather than a
+  consumer-specific animation gate.
+- Updated the Web Viewer Suite dependency to 0.1.6.
+
 ## [0.1.6] - 2026-08-17
 
 - Updated to Viewer Navigation 0.1.5, Web Viewer Suite 0.1.5, and Theming

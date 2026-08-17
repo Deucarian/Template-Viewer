@@ -53,6 +53,10 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 Assert.That(
                     composition.AnimationPolicy,
                     Is.TypeOf<ViewerNavigationAnimationPolicy>());
+                Assert.That(
+                    ((ViewerNavigationAnimationPolicy)composition.AnimationPolicy)
+                        .UsesSharedMotionPreference,
+                    Is.True);
                 Assert.That(composition.AnimationPolicy.ShouldAnimate, Is.False);
                 DeucarianViewerReferenceThemeProfile themeProfile =
                     DeucarianViewerReferenceThemePreset.Resolve();
@@ -129,6 +133,10 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 Assert.That(
                     composition.AnimationPolicy,
                     Is.TypeOf<ViewerNavigationAnimationPolicy>());
+                Assert.That(
+                    ((ViewerNavigationAnimationPolicy)composition.AnimationPolicy)
+                        .UsesSharedMotionPreference,
+                    Is.True);
                 Assert.That(composition.AnimationPolicy.ShouldAnimate, Is.False);
                 Assert.That(
                     composition.ThemeProfile,

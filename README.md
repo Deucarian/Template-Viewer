@@ -6,7 +6,8 @@ of copying a viewer application:
 
 - Viewer Navigation supplies Orbit/Fly, Top Down, Return to Origin, the polished
   shared-reference icon toolbar and interactions, pointer/input coordination,
-  and an optional six-face view cube that is off by default. With no intentional
+  browser reduced-motion handling, and an optional six-face view cube that is
+  off by default. With no intentional
   override, it loads the package's complete reference navigation composition,
   including its canonical dark Frosted Glass theme and theme provider;
 - Command Routing and its WebGL Integration supply canonical envelopes,
