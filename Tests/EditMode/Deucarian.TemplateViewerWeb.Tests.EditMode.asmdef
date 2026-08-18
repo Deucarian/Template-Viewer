@@ -6,6 +6,8 @@
     "Deucarian.CommandRouting",
     "Deucarian.TemplateViewerWeb",
     "Deucarian.Theming",
+    "Deucarian.UI",
+    "Deucarian.UI.Editor",
     "Deucarian.ViewerNavigation",
     "UnityEngine.UIElementsModule",
     "Newtonsoft.Json"

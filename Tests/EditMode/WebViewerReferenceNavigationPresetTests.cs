@@ -1,6 +1,9 @@
 using Deucarian.Theming;
+using Deucarian.UI;
+using Deucarian.UI.Editor;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerNavigation.UI;
+using System.IO;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -228,6 +231,44 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 WebViewerStatusOverlay overlay =
                     root.AddComponent<WebViewerStatusOverlay>();
                 overlay.Initialize(null, provider);
+                Assert.That(overlay.StatusDocument, Is.Not.Null);
+                Assert.That(
+                    DeucarianUIRuntime.HasCanonicalPanelSettings(
+                        overlay.StatusDocument),
+                    Is.True);
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        overlay.StatusDocument,
+                        DeucarianUISurfaceRole.Status),
+                    Is.True);
+                Assert.That(
+                    overlay.StatusDocument.sortingOrder,
+                    Is.EqualTo(
+                        DeucarianUIDepth.Resolve(
+                            DeucarianUISurfaceRole.Status)));
+                Assert.That(overlay.StatusPanel, Is.Not.Null);
+                Assert.That(overlay.StatusLabel, Is.Not.Null);
+                Assert.That(
+                    overlay.StatusDocument.rootVisualElement.pickingMode,
+                    Is.EqualTo(PickingMode.Ignore));
+                Assert.That(
+                    overlay.StatusPanel.pickingMode,
+                    Is.EqualTo(PickingMode.Ignore));
+                Assert.That(
+                    overlay.StatusLabel.pickingMode,
+                    Is.EqualTo(PickingMode.Ignore));
+                Assert.That(
+                    overlay.StatusPanel.style.left.value.value,
+                    Is.EqualTo(18f));
+                Assert.That(
+                    overlay.StatusPanel.style.bottom.value.value,
+                    Is.EqualTo(18f));
+                Assert.That(
+                    overlay.StatusPanel.style.width.value.value,
+                    Is.EqualTo(300f));
+                Assert.That(
+                    overlay.StatusPanel.style.height.value.value,
+                    Is.EqualTo(42f));
                 Assert.That(overlay.CurrentTheme, Is.SameAs(expectedTheme));
                 Assert.That(
                     overlay.CurrentTheme,
@@ -260,7 +301,33 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     overlay.CurrentTheme.VisualStyle.StyleId,
                     Is.EqualTo(DeucarianThemeStyleIds.FrostedGlass));
 
+                MethodInfo lifecycleChanged =
+                    typeof(WebViewerStatusOverlay).GetMethod(
+                        "OnLifecycleChanged",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo loadingProgressChanged =
+                    typeof(WebViewerStatusOverlay).GetMethod(
+                        "OnLoadingProgressChanged",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(lifecycleChanged, Is.Not.Null);
+                Assert.That(loadingProgressChanged, Is.Not.Null);
+                lifecycleChanged.Invoke(
+                    overlay,
+                    new object[] { WebViewerLifecycleState.Loading });
+                Assert.That(
+                    overlay.StatusLabel.text,
+                    Is.EqualTo("Loading model\u2026"));
+                loadingProgressChanged.Invoke(
+                    overlay,
+                    new object[] { 0.42f, "Loading model" });
+                Assert.That(
+                    overlay.StatusLabel.text,
+                    Is.EqualTo("Loading model \u2022 42%"));
+
                 overlay.ShowFatalConfigurationError();
+                Assert.That(
+                    overlay.StatusLabel.text,
+                    Is.EqualTo("Viewer configuration failed"));
                 Assert.That(overlay.RenderedStatusColor, Is.EqualTo(error));
             }
             finally
@@ -293,6 +360,26 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     presenter.GetType(),
                     Is.EqualTo(typeof(ViewerNavigationToolbarPresenter)));
                 Assert.That(presenter.Document, Is.Not.Null);
+                PanelSettings canonicalPanelSettings =
+                    DeucarianUIRuntimeAssets.LoadRuntimePanelSettings();
+                Assert.That(canonicalPanelSettings, Is.Not.Null);
+                Assert.That(
+                    presenter.Document.panelSettings,
+                    Is.SameAs(canonicalPanelSettings));
+                Assert.That(
+                    DeucarianUIRuntime.HasCanonicalPanelSettings(
+                        presenter.Document),
+                    Is.True);
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        presenter.Document,
+                        DeucarianUISurfaceRole.PrimaryControls),
+                    Is.True);
+                Assert.That(
+                    presenter.Document.sortingOrder,
+                    Is.EqualTo(
+                        DeucarianUIDepth.Resolve(
+                            DeucarianUISurfaceRole.PrimaryControls)));
                 Assert.That(presenter.Root, Is.Not.Null);
                 Assert.That(
                     presenter.Root.name,
@@ -354,11 +441,91 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 Assert.That(
                     installer.Controller.InteractionGate,
                     Is.Not.Null);
+
+                WebViewerStatusOverlay statusOverlay =
+                    root.AddComponent<WebViewerStatusOverlay>();
+                statusOverlay.Initialize(null, installer.ThemeProvider);
+                Assert.That(
+                    statusOverlay.StatusDocument.panelSettings,
+                    Is.SameAs(canonicalPanelSettings));
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        statusOverlay.StatusDocument,
+                        DeucarianUISurfaceRole.Status),
+                    Is.True);
+
+                PropertyInfo runtimeTooltipProperty =
+                    typeof(ViewerNavigationToolbarPresenter).GetProperty(
+                        "RuntimeTooltip",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(runtimeTooltipProperty, Is.Not.Null);
+                var runtimeTooltip = runtimeTooltipProperty.GetValue(presenter)
+                    as DeucarianRuntimeTooltipPresenter;
+                Assert.That(runtimeTooltip, Is.Not.Null);
+                UIDocument tooltipDocument = runtimeTooltip.OverlayDocument;
+                Assert.That(tooltipDocument, Is.Not.Null);
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        tooltipDocument,
+                        DeucarianUISurfaceRole.Tooltip),
+                    Is.True);
+                Assert.That(
+                    tooltipDocument.sortingOrder,
+                    Is.EqualTo(
+                        DeucarianUIDepth.Resolve(
+                            DeucarianUISurfaceRole.Tooltip)));
+                Assert.That(tooltipDocument.panelSettings, Is.Not.Null);
+                Assert.That(
+                    tooltipDocument.panelSettings,
+                    Is.Not.SameAs(canonicalPanelSettings));
+                Assert.That(
+                    tooltipDocument.panelSettings.sortingOrder,
+                    Is.EqualTo(
+                        DeucarianUIDepth.Resolve(
+                            DeucarianUISurfaceRole.Tooltip)));
+                Assert.That(tooltipDocument.panelSettings.clearColor, Is.False);
+                Assert.That(
+                    tooltipDocument.panelSettings.clearDepthStencil,
+                    Is.False);
+                Assert.That(
+                    statusOverlay.StatusDocument.sortingOrder,
+                    Is.GreaterThan(presenter.Document.sortingOrder));
+                Assert.That(
+                    tooltipDocument.sortingOrder,
+                    Is.GreaterThan(
+                        statusOverlay.StatusDocument.sortingOrder));
+                Assert.That(
+                    tooltipDocument.panelSettings.sortingOrder,
+                    Is.GreaterThan(
+                        statusOverlay.StatusDocument.panelSettings
+                            .sortingOrder));
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        [Test]
+        public void TemplateDelegatesScreenSpaceLayeringToUiPackage()
+        {
+            UnityEditor.PackageManager.PackageInfo package =
+                UnityEditor.PackageManager.PackageInfo.FindForAssembly(
+                    typeof(WebViewerBootstrap).Assembly);
+            Assert.That(package, Is.Not.Null);
+            string runtimeRoot = Path.Combine(
+                package.resolvedPath,
+                "Runtime");
+
+            var violations = DeucarianUILayeringArchitectureValidator
+                .ValidateRuntimeRoot(runtimeRoot);
+
+            Assert.That(
+                violations,
+                Is.Empty,
+                "Web Viewer Template runtime must delegate screen-space " +
+                "layering to com.deucarian.ui:\n" +
+                string.Join("\n", violations));
         }
 
         private static void AssertCanonicalButton(

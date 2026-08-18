@@ -1,13 +1,17 @@
 using Deucarian.Theming;
+using Deucarian.Theming.UIToolkit;
 using Deucarian.UI;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Deucarian.TemplateViewerWeb
 {
     [DisallowMultipleComponent]
     public sealed class WebViewerStatusOverlay : MonoBehaviour
     {
+        public const string StatusPanelName = "WebViewerStatusPanel";
+        public const string StatusLabelName = "WebViewerStatusLabel";
+
         private static readonly Color FallbackSurfaceColor =
             new Color(0.035f, 0.055f, 0.09f, 0.92f);
         private static readonly Color FallbackTextColor =
@@ -15,28 +19,28 @@ namespace Deucarian.TemplateViewerWeb
         private static readonly Color FallbackErrorColor =
             new Color(1f, 0.55f, 0.52f, 1f);
 
-        private GameObject panel;
-        private Image background;
-        private Outline outline;
-        private Text statusText;
+        private UIDocument statusDocument;
+        private VisualElement panel;
+        private Label statusLabel;
         private WebViewerApplication application;
         private DeucarianThemeProvider themeProvider;
         private DeucarianTheme currentTheme;
         private bool currentFailed;
 
         public DeucarianTheme CurrentTheme => currentTheme;
+        public UIDocument StatusDocument => statusDocument;
+        public VisualElement StatusPanel => panel;
+        public Label StatusLabel => statusLabel;
         public Color EffectiveSurfaceColor { get; private set; } =
             FallbackSurfaceColor;
         public Color EffectiveTextColor { get; private set; } =
             FallbackTextColor;
         public Color EffectiveErrorColor { get; private set; } =
             FallbackErrorColor;
-        public Color RenderedSurfaceColor => background != null
-            ? background.color
-            : EffectiveSurfaceColor;
-        public Color RenderedStatusColor => statusText != null
-            ? statusText.color
-            : currentFailed ? EffectiveErrorColor : EffectiveTextColor;
+        public Color RenderedSurfaceColor { get; private set; } =
+            FallbackSurfaceColor;
+        public Color RenderedStatusColor { get; private set; } =
+            FallbackTextColor;
 
         public void Initialize(WebViewerApplication viewerApplication)
         {
@@ -76,6 +80,10 @@ namespace Deucarian.TemplateViewerWeb
         {
             UnbindApplication();
             UnbindThemeProvider();
+            statusDocument?.rootVisualElement.Clear();
+            statusDocument = null;
+            panel = null;
+            statusLabel = null;
         }
 
         private void UnbindApplication()
@@ -139,11 +147,12 @@ namespace Deucarian.TemplateViewerWeb
                     SetStatus("Waiting for browser host", false);
                     break;
                 case WebViewerLifecycleState.Loading:
-                    SetStatus("Loading model…", false);
+                    SetStatus("Loading model\u2026", false);
                     break;
                 case WebViewerLifecycleState.Ready:
                     SetStatus(
-                        "Ready • " + application.IndexedElementCount + " elements",
+                        "Ready \u2022 " + application.IndexedElementCount +
+                        " elements",
                         false);
                     break;
                 case WebViewerLifecycleState.Failed:
@@ -160,7 +169,9 @@ namespace Deucarian.TemplateViewerWeb
             string label = string.IsNullOrWhiteSpace(message)
                 ? "Loading model"
                 : message.Trim();
-            SetStatus(label + " • " + Mathf.RoundToInt(normalized * 100f) + "%", false);
+            SetStatus(
+                label + " \u2022 " + Mathf.RoundToInt(normalized * 100f) + "%",
+                false);
         }
 
         private void EnsureUi()
@@ -171,49 +182,59 @@ namespace Deucarian.TemplateViewerWeb
                 return;
             }
 
-            GameObject canvasObject = new GameObject(
-                "Web Viewer Status Canvas",
-                typeof(Canvas),
-                typeof(CanvasScaler),
-                typeof(GraphicRaycaster));
-            canvasObject.transform.SetParent(transform, false);
-            Canvas canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 900;
-            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1440f, 900f);
+            statusDocument = GetComponent<UIDocument>();
+            if (statusDocument == null)
+            {
+                statusDocument = gameObject.AddComponent<UIDocument>();
+            }
 
-            panel = new GameObject(
-                "Status",
-                typeof(RectTransform),
-                typeof(Image),
-                typeof(Outline));
-            panel.transform.SetParent(canvasObject.transform, false);
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 0f);
-            rect.pivot = new Vector2(0f, 0f);
-            rect.anchoredPosition = new Vector2(18f, 18f);
-            rect.sizeDelta = new Vector2(300f, 42f);
+            DeucarianUIRuntime.Configure(
+                statusDocument,
+                DeucarianUISurfaceRole.Status);
 
-            background = panel.GetComponent<Image>();
-            outline = panel.GetComponent<Outline>();
+            VisualElement root = statusDocument.rootVisualElement;
+            root.Clear();
+            root.pickingMode = PickingMode.Ignore;
+            root.style.position = Position.Absolute;
+            root.style.left = 0f;
+            root.style.right = 0f;
+            root.style.top = 0f;
+            root.style.bottom = 0f;
+            root.style.backgroundColor = StyleKeyword.Null;
 
-            GameObject textObject = new GameObject(
-                "Label",
-                typeof(RectTransform),
-                typeof(Text));
-            textObject.transform.SetParent(panel.transform, false);
-            statusText = textObject.GetComponent<Text>();
-            statusText.font = GetBuiltinFont();
-            statusText.fontSize = 14;
-            statusText.alignment = TextAnchor.MiddleLeft;
-            RectTransform textRect = statusText.rectTransform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(14f, 0f);
-            textRect.offsetMax = new Vector2(-14f, 0f);
+            panel = new VisualElement
+            {
+                name = StatusPanelName,
+                pickingMode = PickingMode.Ignore
+            };
+            panel.style.position = Position.Absolute;
+            panel.style.left = 18f;
+            panel.style.bottom = 18f;
+            panel.style.width = 300f;
+            panel.style.height = 42f;
+            panel.style.paddingLeft = 14f;
+            panel.style.paddingRight = 14f;
+            panel.style.flexDirection = FlexDirection.Row;
+            panel.style.alignItems = Align.Center;
+            panel.style.justifyContent = Justify.FlexStart;
+
+            statusLabel = new Label(string.Empty)
+            {
+                name = StatusLabelName,
+                pickingMode = PickingMode.Ignore
+            };
+            statusLabel.style.flexGrow = 1f;
+            statusLabel.style.height = Length.Percent(100f);
+            statusLabel.style.fontSize = 14f;
+            statusLabel.style.unityTextAlign = TextAnchor.MiddleLeft;
+            statusLabel.style.whiteSpace = WhiteSpace.NoWrap;
+            statusLabel.style.marginLeft = 0f;
+            statusLabel.style.marginRight = 0f;
+            statusLabel.style.marginTop = 0f;
+            statusLabel.style.marginBottom = 0f;
+
+            panel.Add(statusLabel);
+            root.Add(panel);
             ApplyResolvedTheme();
         }
 
@@ -221,7 +242,7 @@ namespace Deucarian.TemplateViewerWeb
         {
             currentFailed = failed;
             EnsureUi();
-            statusText.text = value;
+            statusLabel.text = value;
             ApplyStatusTextColor();
         }
 
@@ -240,28 +261,22 @@ namespace Deucarian.TemplateViewerWeb
             DeucarianThemeStyle style = themeProvider != null
                 ? themeProvider.CurrentStyle
                 : currentTheme != null ? currentTheme.VisualStyle : null;
-            bool appliedSurface = DeucarianUGUIGlassPanel.ApplyImage(
-                background,
+            DeucarianUIToolkitThemeTypography.Apply(
+                panel,
                 currentTheme,
-                EffectiveSurfaceColor,
-                style);
-            if (!appliedSurface && background != null)
-            {
-                background.sprite = null;
-                background.type = Image.Type.Simple;
-                background.color = EffectiveSurfaceColor;
-            }
+                this);
+            DeucarianGlassPanelStyle.ApplyPanel(
+                panel,
+                currentTheme,
+                style,
+                this);
 
-            bool appliedOutline = DeucarianUGUIGlassPanel.ApplyOutline(
-                outline,
-                EffectiveSurfaceColor,
-                currentTheme,
-                style);
-            if (!appliedOutline && outline != null)
+            RenderedSurfaceColor = style != null
+                ? style.ResolveSurfaceColor(EffectiveSurfaceColor)
+                : EffectiveSurfaceColor;
+            if (panel != null)
             {
-                outline.effectColor = Color.clear;
-                outline.effectDistance = Vector2.zero;
-                outline.useGraphicAlpha = false;
+                panel.style.backgroundColor = RenderedSurfaceColor;
             }
 
             ApplyStatusTextColor();
@@ -269,11 +284,12 @@ namespace Deucarian.TemplateViewerWeb
 
         private void ApplyStatusTextColor()
         {
-            if (statusText != null)
+            RenderedStatusColor = currentFailed
+                ? EffectiveErrorColor
+                : EffectiveTextColor;
+            if (statusLabel != null)
             {
-                statusText.color = currentFailed
-                    ? EffectiveErrorColor
-                    : EffectiveTextColor;
+                statusLabel.style.color = RenderedStatusColor;
             }
         }
 
@@ -283,18 +299,6 @@ namespace Deucarian.TemplateViewerWeb
                    currentTheme.TryGetColorById(roleId, out Color color)
                 ? color
                 : fallback;
-        }
-
-        private static Font GetBuiltinFont()
-        {
-            try
-            {
-                return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            }
-            catch (UnityException)
-            {
-                return Resources.GetBuiltinResource<Font>("Arial.ttf");
-            }
         }
     }
 }

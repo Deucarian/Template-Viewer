@@ -13,6 +13,8 @@ of copying a viewer application:
   toolbar's UI Toolkit assets, control-island chrome, element tree, pointer
   behavior, and movement-key suppression are package-owned; template consumers
   must not recreate or restyle that presentation locally;
+- UI supplies the canonical runtime PanelSettings, semantic surface roles, and
+  shared topmost tooltip overlay used by every in-viewer UI package;
 - Command Routing and its WebGL Integration supply canonical envelopes,
   direct-page and secure iframe transport, ready handshake, and cleanup;
 - API, Object Loading, and their integration load AssetBundle content;
@@ -84,6 +86,19 @@ The toolbar resolves colors, visual style, and theme mode through
 Its public element names come from `ViewerNavigationToolbarPresenter`, so host
 automation can locate controls without taking ownership of their hierarchy or
 presentation.
+
+## Shared UI layering
+
+`com.deucarian.ui` is the single authority for in-viewer UI depth. Viewer
+Navigation requests `PrimaryControls`, the template's lifecycle status document
+requests `Status`, and runtime tooltips use `Tooltip`. Consumers compose those
+roles through `DeucarianUIRuntime`; they do not assign numeric sorting orders,
+create private PanelSettings assets, or implement their own tooltip overlays.
+
+All in-viewer surfaces use the canonical UI Toolkit panel family, so the
+topmost tooltip guarantee is enforced by one compositing system. Feature
+packages still own their content and behavior, while UI owns how their surfaces
+are composed relative to one another.
 
 ## Browser security
 

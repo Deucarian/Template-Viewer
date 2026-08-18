@@ -14,7 +14,7 @@
     "Deucarian.UI",
     "Deucarian.ViewerNavigation",
     "Newtonsoft.Json",
-    "UnityEngine.UI"
+    "UnityEngine.UIElementsModule"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

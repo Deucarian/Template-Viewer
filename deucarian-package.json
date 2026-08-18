@@ -32,7 +32,7 @@
     "com.deucarian.viewer-navigation",
     "com.deucarian.web-viewer-suite",
     "com.unity.nuget.newtonsoft-json",
-    "com.unity.ugui"
+    "com.unity.modules.uielements"
   ],
   "optionalVersionDefinedDependencies": [],
   "allowedDirectDebugCalls": [],

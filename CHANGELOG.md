@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.9] - 2026-08-18
+
+- Updated to UI 0.2.6 and Viewer Navigation 0.1.9 so all runtime viewer
+  surfaces use the shared semantic depth contract and canonical PanelSettings.
+- Replaced the template's legacy uGUI status canvas with a canonical UI Toolkit
+  document on the UI-owned `Status` surface role. Navigation remains on
+  `PrimaryControls`, while the package-owned tooltip panel is guaranteed to
+  compose above both documents.
+- Preserved the status panel's bottom-left 300 x 42 layout, lifecycle copy,
+  theme-derived colors, typography, and Frosted Glass presentation without a
+  direct uGUI dependency.
+- Updated the Web Viewer Suite dependency to 0.1.8 and added composition-level
+  parity coverage for canonical panel ownership, semantic depth, and tooltip
+  topness.
+
 ## [0.1.8] - 2026-08-17
 
 - Updated to Viewer Navigation 0.1.7 so the template composes the canonical
