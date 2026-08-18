@@ -81,6 +81,7 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     rendering.ResolveDefaultDisplaySettings(false)
                         .EffectsActive,
                     Is.True);
+                AssertNeutralReferenceSky(rendering);
             }
             finally
             {
@@ -334,6 +335,39 @@ namespace Deucarian.TemplateViewerWeb.Tests
             shell = (ViewerShellPresenter)installShell.Invoke(
                 bootstrap,
                 new object[] { rendering });
+        }
+
+        private static void AssertNeutralReferenceSky(
+            ViewerRenderingReferenceCompositionProfile rendering)
+        {
+            ViewerThemedEnvironment.ResolveGradientColors(
+                rendering.ThemeProfile.DarkTheme,
+                rendering.EnvironmentProfile,
+                out Color top,
+                out Color horizon,
+                out Color bottom,
+                out _,
+                out Color background);
+
+            Assert.That(
+                top,
+                Is.EqualTo(ViewerRenderingSettings.DefaultReferenceSkyTop));
+            Assert.That(
+                horizon,
+                Is.EqualTo(
+                    ViewerRenderingSettings.DefaultReferenceSkyHorizon));
+            Assert.That(
+                bottom,
+                Is.EqualTo(
+                    ViewerRenderingSettings.DefaultReferenceSkyBottom));
+            Assert.That(
+                ViewerThemedEnvironment.ResolvePrimaryStrength(
+                    rendering.ThemeProfile.DarkTheme,
+                    background,
+                    rendering.EnvironmentProfile),
+                Is.EqualTo(
+                    rendering.EnvironmentProfile
+                        .NeutralSkyPrimaryStrength));
         }
     }
 }
