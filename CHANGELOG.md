@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.10] - 2026-08-18
+
+- Replaced the template-local status presentation with the reusable reference
+  viewer shell, including Report-donor status/toast, information and display
+  settings menus, responsive chrome, tooltips, input boundaries, and layering.
+- Composed the reusable reference rendering baseline so camera, key light,
+  environment, post-processing, and display policy match every viewer consumer.
+- Uses Viewer Rendering's package-owned Full quality tier on desktop and WebGL,
+  so consumer project quality indices cannot change the reference appearance.
+- Injected one authoritative reference theme provider through rendering,
+  navigation, and shell, and added whole-composition parity coverage.
+
 ## [0.1.9] - 2026-08-18
 
 - Updated to UI 0.2.6 and Viewer Navigation 0.1.9 so all runtime viewer

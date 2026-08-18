@@ -15,6 +15,13 @@ of copying a viewer application:
   must not recreate or restyle that presentation locally;
 - UI supplies the canonical runtime PanelSettings, semantic surface roles, and
   shared topmost tooltip overlay used by every in-viewer UI package;
+- Viewer Rendering supplies the exact reference camera, key light, URP,
+  post-processing, reflection, themed environment, display-settings state, and
+  semantic Full quality baseline independently of consumer quality indices;
+- Viewer Shell supplies the complete Report-donor generic status/toast,
+  information and display-settings menus, responsive chrome, input boundaries,
+  menu coordination, and tooltips. The template contains only a lifecycle
+  adapter and no local shell presentation;
 - Command Routing and its WebGL Integration supply canonical envelopes,
   direct-page and secure iframe transport, ready handshake, and cleanup;
 - API, Object Loading, and their integration load AssetBundle content;
@@ -76,11 +83,12 @@ Viewer Navigation, so camera transform, projection, pivot, navigation mode,
 and current user position remain unchanged. Initial model registration frames
 once and captures Return to Origin after model placement.
 
-`WebViewerBootstrap.ResolvedNavigationComposition` exposes the exact cached
-composition used at runtime. `NavigationInstaller` exposes the installed
-controller/provider, while `CurrentTheme` and `WebViewerStatusOverlay.CurrentTheme`
-resolve to the same canonical theme. Supplying custom navigation settings only
-replaces the preset; input, bounds, animation, and theme policies stay shared.
+`WebViewerBootstrap.ResolvedNavigationComposition`,
+`ResolvedRenderingComposition`, and `ResolvedShellProfile` expose the exact
+shared compositions used at runtime. `NavigationInstaller`,
+`RenderingInstaller`, and `ShellPresenter` all expose the same authoritative
+theme provider. Supplying custom navigation settings only replaces the preset;
+input, bounds, animation, rendering, shell, and theme policies stay shared.
 The toolbar resolves colors, visual style, and theme mode through
 `com.deucarian.theming`; the template does not contain a parallel theme palette.
 Its public element names come from `ViewerNavigationToolbarPresenter`, so host
@@ -90,8 +98,8 @@ presentation.
 ## Shared UI layering
 
 `com.deucarian.ui` is the single authority for in-viewer UI depth. Viewer
-Navigation requests `PrimaryControls`, the template's lifecycle status document
-requests `Status`, and runtime tooltips use `Tooltip`. Consumers compose those
+Navigation requests `PrimaryControls`, Viewer Shell requests `Status` and
+`Menu`, and runtime tooltips use `Tooltip`. Consumers compose those
 roles through `DeucarianUIRuntime`; they do not assign numeric sorting orders,
 create private PanelSettings assets, or implement their own tooltip overlays.
 

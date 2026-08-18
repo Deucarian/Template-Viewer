@@ -9,6 +9,8 @@
     "Deucarian.UI",
     "Deucarian.UI.Editor",
     "Deucarian.ViewerNavigation",
+    "Deucarian.ViewerRendering",
+    "Deucarian.ViewerShell",
     "UnityEngine.UIElementsModule",
     "Newtonsoft.Json"
   ],

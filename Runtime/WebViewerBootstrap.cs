@@ -11,6 +11,9 @@ using Deucarian.TemplateViewerWeb.Loading;
 using Deucarian.TemplateViewerWeb.Selection;
 using Deucarian.Theming;
 using Deucarian.ViewerNavigation;
+using Deucarian.ViewerNavigation.UI;
+using Deucarian.ViewerRendering;
+using Deucarian.ViewerShell;
 using UnityEngine;
 
 namespace Deucarian.TemplateViewerWeb
@@ -27,20 +30,26 @@ namespace Deucarian.TemplateViewerWeb
 
         [Header("Viewer")]
         [SerializeField] private Camera viewerCamera;
+        [SerializeField] private Light keyLight;
         [SerializeField] private ViewerNavigationSettings navigationSettings;
         [SerializeField] private GameObject embeddedReferenceModel;
         [SerializeField] private Transform loadedModelParent;
         [SerializeField] private ApiClientConfig apiClientConfig;
         private ViewerNavigationReferenceCompositionProfile _navigationComposition;
         private bool _hasResolvedNavigationComposition;
+        private ViewerRenderingReferenceCompositionProfile _renderingComposition;
+        private bool _hasResolvedRenderingComposition;
 
         private ObjectLoadingWebViewerModelLoader modelLoader;
         private WebViewerApplication application;
         private CommandRoutingRuntime<WebViewerApplication> commandRuntime;
         private CommandTransportBridge<WebViewerApplication> commandBridge;
         private DiagnosticProviderRegistration diagnosticRegistration;
-        private WebViewerStatusOverlay statusOverlay;
         private ViewerNavigationInstaller navigationInstaller;
+        private ViewerRenderingInstaller renderingInstaller;
+        private ViewerShellPresenter shellPresenter;
+        private WebViewerShellStatusAdapter shellStatusAdapter;
+        private DeucarianThemeProvider referenceThemeProvider;
 
         public bool IframeMode => iframeMode;
         public string ParentOrigin => parentOrigin;
@@ -49,24 +58,29 @@ namespace Deucarian.TemplateViewerWeb
             ResolvedNavigationComposition => ResolveNavigationComposition();
         public ViewerNavigationSettings ResolvedNavigationSettings =>
             ResolvedNavigationComposition.Preset;
+        public ViewerRenderingReferenceCompositionProfile
+            ResolvedRenderingComposition => ResolveRenderingComposition();
+        public ViewerShellReferenceProfile ResolvedShellProfile =>
+            ViewerShellReferencePreset.Profile;
         public ViewerNavigationInstaller NavigationInstaller =>
             navigationInstaller;
+        public ViewerRenderingInstaller RenderingInstaller =>
+            renderingInstaller;
+        public ViewerShellPresenter ShellPresenter => shellPresenter;
+        public DeucarianThemeProvider ThemeProvider =>
+            referenceThemeProvider ??
+            renderingInstaller?.ThemeProvider ??
+            navigationInstaller?.ThemeProvider ??
+            shellPresenter?.ThemeProvider;
         public DeucarianTheme CurrentTheme =>
-            navigationInstaller?.ThemeProvider?.CurrentTheme ??
+            ThemeProvider?.CurrentTheme ??
             ResolvedNavigationComposition.ThemeProfile.ResolveTheme(
                 ResolvedNavigationComposition.ThemeMode);
 
         private void Start()
         {
-            statusOverlay = GetComponent<WebViewerStatusOverlay>();
-            if (statusOverlay == null)
-            {
-                statusOverlay = gameObject.AddComponent<WebViewerStatusOverlay>();
-            }
-
             try
             {
-                statusOverlay.ApplyTheme(CurrentTheme);
                 Compose();
             }
             catch (Exception exception)
@@ -75,7 +89,10 @@ namespace Deucarian.TemplateViewerWeb
                     "Web viewer composition failed with " +
                     exception.GetType().Name + ". Details were omitted.",
                     this);
-                statusOverlay.ShowFatalConfigurationError();
+                shellPresenter?.ApplyStatus(
+                    ViewerShellStatusSnapshot.Error(
+                        "Viewer configuration failed",
+                        "The generic viewer composition did not complete."));
             }
         }
 
@@ -115,6 +132,8 @@ namespace Deucarian.TemplateViewerWeb
 
         private void OnDestroy()
         {
+            shellStatusAdapter?.Dispose();
+            shellStatusAdapter = null;
             commandBridge?.Dispose();
             commandBridge = null;
             application?.Dispose();
@@ -123,7 +142,10 @@ namespace Deucarian.TemplateViewerWeb
             commandRuntime = null;
             diagnosticRegistration?.Dispose();
             diagnosticRegistration = null;
+            shellPresenter?.Dispose();
+            shellPresenter = null;
             navigationInstaller = null;
+            renderingInstaller = null;
             if (modelLoader != null)
             {
                 modelLoader.ProgressChanged -= OnModelLoadingProgress;
@@ -133,12 +155,15 @@ namespace Deucarian.TemplateViewerWeb
 
         private void Compose()
         {
+            ViewerRenderingInstaller rendering = InstallRendering();
+            ViewerNavigationInstaller navigation = InstallNavigation();
+            ViewerShellPresenter shell = InstallShell(rendering);
+
             if (!TryValidateConfiguration(false, out string issue))
             {
                 throw new InvalidOperationException(issue);
             }
 
-            ViewerNavigationInstaller navigation = InstallNavigation();
             navigation.BeginReferenceLoad();
 
             IApiClient apiClient = ApiClientFactory.Create(apiClientConfig);
@@ -184,16 +209,51 @@ namespace Deucarian.TemplateViewerWeb
                 disposeTransport: true);
             diagnosticRegistration = DiagnosticProviderRegistry.Register(
                 new WebViewerApplicationDiagnosticProvider(application));
-            statusOverlay.Initialize(application, navigation.ThemeProvider);
+            shellStatusAdapter = new WebViewerShellStatusAdapter(
+                application,
+                shell);
             commandBridge.Start();
+        }
+
+        private ViewerRenderingInstaller InstallRendering()
+        {
+            EnsureSceneDependencies();
+            renderingInstaller = ResolvedRenderingComposition.Compose(
+                transform,
+                viewerCamera,
+                keyLight,
+                referenceThemeProvider);
+            viewerCamera = renderingInstaller.Camera;
+            keyLight = renderingInstaller.KeyLight;
+            referenceThemeProvider = renderingInstaller.ThemeProvider;
+            return renderingInstaller;
         }
 
         private ViewerNavigationInstaller InstallNavigation()
         {
-            EnsureSceneDependencies();
-            navigationInstaller =
-                ResolvedNavigationComposition.Compose(transform, viewerCamera);
+            ViewerRenderingInstaller rendering =
+                renderingInstaller ?? InstallRendering();
+            navigationInstaller = ResolvedNavigationComposition.Compose(
+                transform,
+                viewerCamera,
+                rendering.ThemeProvider);
             return navigationInstaller;
+        }
+
+        private ViewerShellPresenter InstallShell(
+            ViewerRenderingInstaller rendering)
+        {
+            ViewerShellConfiguration configuration =
+                ViewerShellReferenceComposition.CreateConfiguration(
+                    rendering.ThemeProvider,
+                    () => ViewerNavigationMotionPreferences.ShouldAnimate,
+                    root => ViewerNavigationMovementKeyGuard.Bind(root),
+                    showDiagnostics: true);
+            shellPresenter = ViewerShellReferenceComposition.Install(
+                transform,
+                rendering.Controller,
+                configuration);
+            return shellPresenter;
         }
 
         private ViewerNavigationReferenceCompositionProfile
@@ -213,28 +273,21 @@ namespace Deucarian.TemplateViewerWeb
             return _navigationComposition;
         }
 
+        private ViewerRenderingReferenceCompositionProfile
+            ResolveRenderingComposition()
+        {
+            if (!_hasResolvedRenderingComposition)
+            {
+                _renderingComposition =
+                    ViewerRenderingReferenceComposition.Resolve();
+                _hasResolvedRenderingComposition = true;
+            }
+
+            return _renderingComposition;
+        }
+
         private void EnsureSceneDependencies()
         {
-            if (viewerCamera == null)
-            {
-                GameObject cameraObject = new GameObject("Viewer Camera");
-                cameraObject.transform.SetParent(transform, false);
-                viewerCamera = cameraObject.AddComponent<Camera>();
-                viewerCamera.tag = "MainCamera";
-                viewerCamera.transform.position = new Vector3(0f, 3.2f, -8f);
-                viewerCamera.transform.rotation = Quaternion.Euler(18f, 0f, 0f);
-            }
-
-            if (FindFirstObjectByType<Light>() == null)
-            {
-                GameObject lightObject = new GameObject("Viewer Light");
-                lightObject.transform.SetParent(transform, false);
-                Light light = lightObject.AddComponent<Light>();
-                light.type = LightType.Directional;
-                light.intensity = 1.15f;
-                light.transform.rotation = Quaternion.Euler(50f, -35f, 0f);
-            }
-
             if (loadedModelParent == null)
             {
                 GameObject parent = new GameObject("Loaded Model");

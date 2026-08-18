@@ -13,6 +13,8 @@
     "Deucarian.Theming",
     "Deucarian.UI",
     "Deucarian.ViewerNavigation",
+    "Deucarian.ViewerRendering",
+    "Deucarian.ViewerShell",
     "Newtonsoft.Json",
     "UnityEngine.UIElementsModule"
   ],

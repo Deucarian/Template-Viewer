@@ -1,10 +1,12 @@
+using System.IO;
+using System.Reflection;
 using Deucarian.Theming;
 using Deucarian.UI;
 using Deucarian.UI.Editor;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerNavigation.UI;
-using System.IO;
-using System.Reflection;
+using Deucarian.ViewerRendering;
+using Deucarian.ViewerShell;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -14,91 +16,71 @@ namespace Deucarian.TemplateViewerWeb.Tests
     public sealed class WebViewerReferenceNavigationPresetTests
     {
         [Test]
-        public void TemplateDefaultsToSharedReferenceNavigationComposition()
+        public void TemplateResolvesTheSharedReferenceProfiles()
         {
-            GameObject root = new GameObject("Template Reference Preset Test");
+            GameObject root = new GameObject("Template Reference Profiles");
             try
             {
                 WebViewerBootstrap bootstrap =
                     root.AddComponent<WebViewerBootstrap>();
-                ViewerNavigationSettings preset =
-                    ViewerNavigationSettings.LoadReferencePreset();
-                ViewerNavigationReferenceCompositionProfile composition =
+                ViewerNavigationReferenceCompositionProfile navigation =
                     bootstrap.ResolvedNavigationComposition;
-                ViewerNavigationReferenceCompositionProfile cachedComposition =
-                    bootstrap.ResolvedNavigationComposition;
+                ViewerRenderingReferenceCompositionProfile rendering =
+                    bootstrap.ResolvedRenderingComposition;
+                DeucarianViewerReferenceThemeProfile theme =
+                    DeucarianViewerReferenceThemePreset.Resolve();
 
-                Assert.That(preset, Is.Not.Null);
-                Assert.That(composition.Preset, Is.SameAs(preset));
+                Assert.That(
+                    navigation.Preset,
+                    Is.SameAs(ViewerNavigationSettings.LoadReferencePreset()));
                 Assert.That(
                     bootstrap.ResolvedNavigationSettings,
-                    Is.SameAs(composition.Preset));
+                    Is.SameAs(navigation.Preset));
                 Assert.That(
-                    bootstrap.ResolvedNavigationSettings.Controls,
-                    Is.SameAs(preset.Controls));
-                Assert.That(
-                    bootstrap.ResolvedNavigationSettings.FramingSettings,
-                    Is.SameAs(preset.FramingSettings));
-                Assert.That(
-                    bootstrap.ResolvedNavigationSettings
-                        .CalculateTransitionDuration(10f),
-                    Is.EqualTo(0.5f));
-                Assert.That(
-                    bootstrap.ResolvedNavigationSettings.ShowToolbar,
-                    Is.True);
-                Assert.That(
-                    bootstrap.ResolvedNavigationSettings.ShowViewCube,
-                    Is.False);
-                Assert.That(
-                    composition.InputBlocker,
+                    navigation.InputBlocker,
                     Is.TypeOf<ViewerNavigationUiInputBlocker>());
                 Assert.That(
-                    composition.BoundsStrategy,
+                    navigation.BoundsStrategy,
                     Is.TypeOf<ViewerNavigationMeshBoundsStrategy>());
                 Assert.That(
-                    composition.AnimationPolicy,
+                    navigation.AnimationPolicy,
                     Is.TypeOf<ViewerNavigationAnimationPolicy>());
                 Assert.That(
-                    ((ViewerNavigationAnimationPolicy)composition.AnimationPolicy)
+                    ((ViewerNavigationAnimationPolicy)navigation.AnimationPolicy)
                         .UsesSharedMotionPreference,
                     Is.True);
-                Assert.That(composition.AnimationPolicy.ShouldAnimate, Is.False);
-                DeucarianViewerReferenceThemeProfile themeProfile =
-                    DeucarianViewerReferenceThemePreset.Resolve();
-                Assert.That(composition.ThemeProfile, Is.SameAs(themeProfile));
+                Assert.That(navigation.ThemeProfile, Is.SameAs(theme));
+                Assert.That(rendering.ThemeProfile, Is.SameAs(theme));
                 Assert.That(
-                    composition.ThemeMode,
-                    Is.EqualTo(DeucarianViewerReferenceThemePreset.DefaultMode));
+                    navigation.ThemeMode,
+                    Is.EqualTo(rendering.ThemeMode));
                 Assert.That(
-                    composition.ThemeProfile.DefaultTheme,
-                    Is.SameAs(themeProfile.DarkTheme));
+                    bootstrap.ResolvedShellProfile,
+                    Is.SameAs(ViewerShellReferencePreset.Profile));
                 Assert.That(
-                    composition.ThemeProfile.DarkTheme,
-                    Is.SameAs(themeProfile.ThemeFamily.DarkTheme));
+                    bootstrap.ResolvedShellProfile.MenuHorizontalGap,
+                    Is.EqualTo(
+                        DeucarianViewerMenuClusterLayout
+                            .ReferenceHorizontalGap));
                 Assert.That(
-                    composition.ThemeProfile.VisualStyle,
-                    Is.SameAs(themeProfile.DarkTheme.VisualStyle));
+                    rendering.Settings,
+                    Is.SameAs(
+                        ViewerRenderingSettings.LoadReferencePreset()));
+                Assert.That(rendering.Settings.IsComplete, Is.True);
                 Assert.That(
-                    composition.ThemeProfile.VisualStyle.StyleId,
-                    Is.EqualTo(DeucarianThemeStyleIds.FrostedGlass));
+                    rendering.QualityProfile.DesktopDefaultTier,
+                    Is.EqualTo(ViewerRenderingQualityTier.Full));
                 Assert.That(
-                    cachedComposition.Preset,
-                    Is.SameAs(composition.Preset));
+                    rendering.QualityProfile.WebGlDefaultTier,
+                    Is.EqualTo(ViewerRenderingQualityTier.Full));
                 Assert.That(
-                    cachedComposition.InputBlocker,
-                    Is.SameAs(composition.InputBlocker));
+                    rendering.ResolveDefaultDisplaySettings(false),
+                    Is.EqualTo(
+                        rendering.ResolveDefaultDisplaySettings(true)));
                 Assert.That(
-                    cachedComposition.BoundsStrategy,
-                    Is.SameAs(composition.BoundsStrategy));
-                Assert.That(
-                    cachedComposition.AnimationPolicy,
-                    Is.SameAs(composition.AnimationPolicy));
-                Assert.That(
-                    cachedComposition.ThemeProfile,
-                    Is.SameAs(composition.ThemeProfile));
-                Assert.That(
-                    cachedComposition.ThemeMode,
-                    Is.EqualTo(composition.ThemeMode));
+                    rendering.ResolveDefaultDisplaySettings(false)
+                        .EffectsActive,
+                    Is.True);
             }
             finally
             {
@@ -107,28 +89,25 @@ namespace Deucarian.TemplateViewerWeb.Tests
         }
 
         [Test]
-        public void ExplicitSettingsBecomeEffectivePresetWithoutForkingPolicies()
+        public void ExplicitNavigationSettingsDoNotForkSharedPolicies()
         {
-            GameObject root = new GameObject("Template Explicit Preset Test");
+            GameObject root = new GameObject("Template Explicit Navigation");
             ViewerNavigationSettings settings =
                 ScriptableObject.CreateInstance<ViewerNavigationSettings>();
             try
             {
                 WebViewerBootstrap bootstrap =
                     root.AddComponent<WebViewerBootstrap>();
-                FieldInfo settingsField = typeof(WebViewerBootstrap).GetField(
-                    "navigationSettings",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(settingsField, Is.Not.Null);
-                settingsField.SetValue(bootstrap, settings);
+                typeof(WebViewerBootstrap)
+                    .GetField(
+                        "navigationSettings",
+                        BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(bootstrap, settings);
 
                 ViewerNavigationReferenceCompositionProfile composition =
                     bootstrap.ResolvedNavigationComposition;
 
                 Assert.That(composition.Preset, Is.SameAs(settings));
-                Assert.That(
-                    bootstrap.ResolvedNavigationSettings,
-                    Is.SameAs(settings));
                 Assert.That(
                     composition.InputBlocker,
                     Is.TypeOf<ViewerNavigationUiInputBlocker>());
@@ -139,19 +118,8 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     composition.AnimationPolicy,
                     Is.TypeOf<ViewerNavigationAnimationPolicy>());
                 Assert.That(
-                    ((ViewerNavigationAnimationPolicy)composition.AnimationPolicy)
-                        .UsesSharedMotionPreference,
-                    Is.True);
-                Assert.That(composition.AnimationPolicy.ShouldAnimate, Is.False);
-                Assert.That(
                     composition.ThemeProfile,
                     Is.SameAs(DeucarianViewerReferenceThemePreset.Resolve()));
-                Assert.That(
-                    composition.ThemeMode,
-                    Is.EqualTo(DeucarianViewerReferenceThemePreset.DefaultMode));
-                Assert.That(
-                    composition.ThemeProfile.VisualStyle.StyleId,
-                    Is.EqualTo(DeucarianThemeStyleIds.FrostedGlass));
             }
             finally
             {
@@ -161,174 +129,82 @@ namespace Deucarian.TemplateViewerWeb.Tests
         }
 
         [Test]
-        public void BootstrapInstallsReferenceControllerProviderAndOverlayTheme()
+        public void InstalledTemplateUsesOneThemeAndCompleteSharedShell()
         {
-            GameObject root = new GameObject("Template Installed Preset Test");
+            GameObject root = new GameObject("Template Shared Viewer Stack");
             try
             {
                 WebViewerBootstrap bootstrap =
                     root.AddComponent<WebViewerBootstrap>();
-                MethodInfo installMethod = typeof(WebViewerBootstrap).GetMethod(
-                    "InstallNavigation",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(installMethod, Is.Not.Null);
+                InstallReferenceStack(
+                    bootstrap,
+                    out ViewerRenderingInstaller rendering,
+                    out ViewerNavigationInstaller navigation,
+                    out ViewerShellPresenter shell);
 
-                ViewerNavigationInstaller installer =
-                    (ViewerNavigationInstaller)installMethod.Invoke(
-                        bootstrap,
-                        null);
-                ViewerNavigationReferenceCompositionProfile composition =
-                    bootstrap.ResolvedNavigationComposition;
-
-                Assert.That(installer, Is.Not.Null);
-                Assert.That(
-                    bootstrap.NavigationInstaller,
-                    Is.SameAs(installer));
-                Assert.That(installer.Controller, Is.Not.Null);
-                Assert.That(
-                    installer.Controller.Controls,
-                    Is.SameAs(composition.Preset.Controls));
-                Assert.That(
-                    installer.Controller.FramingSettings,
-                    Is.SameAs(composition.Preset.FramingSettings));
-                Assert.That(
-                    installer.Controller.ReferenceBoundsStrategy,
-                    Is.SameAs(composition.BoundsStrategy));
-                Assert.That(
-                    installer.Controller.MotionProfile.AnimateTransitions,
-                    Is.False);
-
-                PropertyInfo inputBlockerProperty =
-                    typeof(ViewerNavigationController).GetProperty(
-                        "InputBlocker",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(inputBlockerProperty, Is.Not.Null);
-                Assert.That(
-                    inputBlockerProperty.GetValue(installer.Controller),
-                    Is.SameAs(composition.InputBlocker));
-
-                DeucarianThemeProvider provider = installer.ThemeProvider;
-                DeucarianTheme expectedTheme =
-                    composition.ThemeProfile.ResolveTheme(
-                        composition.ThemeMode);
+                DeucarianThemeProvider provider = rendering.ThemeProvider;
                 Assert.That(provider, Is.Not.Null);
+                Assert.That(provider, Is.SameAs(bootstrap.ThemeProvider));
+                Assert.That(provider, Is.SameAs(navigation.ThemeProvider));
+                Assert.That(provider, Is.SameAs(shell.ThemeProvider));
+                Assert.That(
+                    provider,
+                    Is.SameAs(root.GetComponent<DeucarianThemeProvider>()));
+                Assert.That(
+                    navigation.GetComponent<DeucarianThemeProvider>(),
+                    Is.Null);
                 Assert.That(
                     provider.CurrentThemeFamily,
-                    Is.SameAs(composition.ThemeProfile.ThemeFamily));
+                    Is.SameAs(
+                        bootstrap.ResolvedNavigationComposition
+                            .ThemeProfile.ThemeFamily));
                 Assert.That(
-                    provider.ThemeMode,
-                    Is.EqualTo(composition.ThemeMode));
-                Assert.That(
-                    provider.CurrentTheme,
-                    Is.SameAs(expectedTheme));
-                Assert.That(
-                    provider.CurrentStyle,
-                    Is.SameAs(composition.ThemeProfile.VisualStyle));
-                Assert.That(
-                    bootstrap.CurrentTheme,
-                    Is.SameAs(expectedTheme));
-
-                WebViewerStatusOverlay overlay =
-                    root.AddComponent<WebViewerStatusOverlay>();
-                overlay.Initialize(null, provider);
-                Assert.That(overlay.StatusDocument, Is.Not.Null);
-                Assert.That(
-                    DeucarianUIRuntime.HasCanonicalPanelSettings(
-                        overlay.StatusDocument),
-                    Is.True);
-                Assert.That(
-                    DeucarianUIRuntime.IsConfigured(
-                        overlay.StatusDocument,
-                        DeucarianUISurfaceRole.Status),
-                    Is.True);
-                Assert.That(
-                    overlay.StatusDocument.sortingOrder,
-                    Is.EqualTo(
-                        DeucarianUIDepth.Resolve(
-                            DeucarianUISurfaceRole.Status)));
-                Assert.That(overlay.StatusPanel, Is.Not.Null);
-                Assert.That(overlay.StatusLabel, Is.Not.Null);
-                Assert.That(
-                    overlay.StatusDocument.rootVisualElement.pickingMode,
-                    Is.EqualTo(PickingMode.Ignore));
-                Assert.That(
-                    overlay.StatusPanel.pickingMode,
-                    Is.EqualTo(PickingMode.Ignore));
-                Assert.That(
-                    overlay.StatusLabel.pickingMode,
-                    Is.EqualTo(PickingMode.Ignore));
-                Assert.That(
-                    overlay.StatusPanel.style.left.value.value,
-                    Is.EqualTo(18f));
-                Assert.That(
-                    overlay.StatusPanel.style.bottom.value.value,
-                    Is.EqualTo(18f));
-                Assert.That(
-                    overlay.StatusPanel.style.width.value.value,
-                    Is.EqualTo(300f));
-                Assert.That(
-                    overlay.StatusPanel.style.height.value.value,
-                    Is.EqualTo(42f));
-                Assert.That(overlay.CurrentTheme, Is.SameAs(expectedTheme));
-                Assert.That(
-                    overlay.CurrentTheme,
-                    Is.SameAs(bootstrap.CurrentTheme));
-                Assert.That(
-                    expectedTheme.TryGetColorById(
-                        DeucarianBuiltinColorRoleIds.SurfaceRaised,
-                        out Color surface),
-                    Is.True);
-                Assert.That(
-                    expectedTheme.TryGetColorById(
-                        DeucarianBuiltinColorRoleIds.TextPrimary,
-                        out Color text),
-                    Is.True);
-                Assert.That(
-                    expectedTheme.TryGetColorById(
-                        DeucarianBuiltinColorRoleIds.Error,
-                        out Color error),
-                    Is.True);
-                Assert.That(overlay.EffectiveSurfaceColor, Is.EqualTo(surface));
-                Assert.That(overlay.EffectiveTextColor, Is.EqualTo(text));
-                Assert.That(overlay.EffectiveErrorColor, Is.EqualTo(error));
-                Assert.That(
-                    overlay.RenderedSurfaceColor,
-                    Is.EqualTo(
-                        composition.ThemeProfile.VisualStyle
-                            .ResolveSurfaceColor(surface)));
-                Assert.That(overlay.RenderedStatusColor, Is.EqualTo(text));
-                Assert.That(
-                    overlay.CurrentTheme.VisualStyle.StyleId,
+                    provider.CurrentStyle.StyleId,
                     Is.EqualTo(DeucarianThemeStyleIds.FrostedGlass));
 
-                MethodInfo lifecycleChanged =
-                    typeof(WebViewerStatusOverlay).GetMethod(
-                        "OnLifecycleChanged",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                MethodInfo loadingProgressChanged =
-                    typeof(WebViewerStatusOverlay).GetMethod(
-                        "OnLoadingProgressChanged",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(lifecycleChanged, Is.Not.Null);
-                Assert.That(loadingProgressChanged, Is.Not.Null);
-                lifecycleChanged.Invoke(
-                    overlay,
-                    new object[] { WebViewerLifecycleState.Loading });
+                Assert.That(rendering.Camera, Is.Not.Null);
+                Assert.That(rendering.KeyLight, Is.Not.Null);
+                Assert.That(rendering.Controller, Is.Not.Null);
+                Assert.That(rendering.Environment, Is.Not.Null);
                 Assert.That(
-                    overlay.StatusLabel.text,
-                    Is.EqualTo("Loading model\u2026"));
-                loadingProgressChanged.Invoke(
-                    overlay,
-                    new object[] { 0.42f, "Loading model" });
+                    rendering.Controller.ActiveQualityTier,
+                    Is.EqualTo(ViewerRenderingQualityTier.Full));
                 Assert.That(
-                    overlay.StatusLabel.text,
-                    Is.EqualTo("Loading model \u2022 42%"));
+                    rendering.Controller.CurrentSettings.EffectsActive,
+                    Is.True);
+                Assert.That(
+                    rendering.Composition.Settings,
+                    Is.SameAs(bootstrap.ResolvedRenderingComposition.Settings));
+                Assert.That(
+                    rendering.Camera.transform.position,
+                    Is.EqualTo(
+                        bootstrap.ResolvedRenderingComposition.CameraProfile
+                            .Position));
+                Assert.That(
+                    rendering.KeyLight.intensity,
+                    Is.EqualTo(
+                        bootstrap.ResolvedRenderingComposition.LightProfile
+                            .Intensity));
 
-                overlay.ShowFatalConfigurationError();
+                Assert.That(shell.Profile, Is.SameAs(
+                    ViewerShellReferencePreset.Profile));
+                Assert.That(shell.StatusDocument, Is.Not.Null);
+                Assert.That(shell.StatusCard, Is.Not.Null);
+                Assert.That(shell.DiagnosticsView, Is.Not.Null);
+                Assert.That(shell.DisplaySettingsView, Is.Not.Null);
+                Assert.That(shell.MenuCluster, Is.Not.Null);
+                Assert.That(shell.DiagnosticsMenu, Is.Not.Null);
+                Assert.That(shell.DisplaySettingsMenu, Is.Not.Null);
                 Assert.That(
-                    overlay.StatusLabel.text,
-                    Is.EqualTo("Viewer configuration failed"));
-                Assert.That(overlay.RenderedStatusColor, Is.EqualTo(error));
+                    shell.MenuCluster.InformationMenu.RightInset -
+                    shell.MenuCluster.SettingsMenu.RightInset -
+                    DeucarianMorphingMenuMotion.CollapsedSize,
+                    Is.EqualTo(shell.Profile.MenuHorizontalGap));
+                Assert.That(
+                    typeof(WebViewerBootstrap).Assembly.GetType(
+                        "Deucarian.TemplateViewerWeb.WebViewerStatusOverlay"),
+                    Is.Null,
+                    "The template must not carry a local shell UI fork.");
             }
             finally
             {
@@ -337,168 +213,70 @@ namespace Deucarian.TemplateViewerWeb.Tests
         }
 
         [Test]
-        public void BootstrapInstallsPackageOwnedCanonicalToolbarElementTree()
+        public void SharedDocumentsUseCanonicalDepthAndTooltipsStayOnTop()
         {
-            GameObject root = new GameObject("Template Toolbar Contract Test");
+            GameObject root = new GameObject("Template Shared UI Depth");
             try
             {
                 WebViewerBootstrap bootstrap =
                     root.AddComponent<WebViewerBootstrap>();
-                MethodInfo installMethod = typeof(WebViewerBootstrap).GetMethod(
-                    "InstallNavigation",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(installMethod, Is.Not.Null);
+                InstallReferenceStack(
+                    bootstrap,
+                    out _,
+                    out ViewerNavigationInstaller navigation,
+                    out ViewerShellPresenter shell);
 
-                ViewerNavigationInstaller installer =
-                    (ViewerNavigationInstaller)installMethod.Invoke(
-                        bootstrap,
-                        null);
-                ViewerNavigationToolbarPresenter presenter = installer.Toolbar;
+                UIDocument navigationDocument = navigation.Toolbar.Document;
+                UIDocument statusDocument = shell.StatusDocument;
+                UIDocument diagnosticsDocument =
+                    shell.DiagnosticsMenu.Document;
+                UIDocument settingsDocument =
+                    shell.DisplaySettingsMenu.Document;
+                UIDocument tooltipDocument =
+                    shell.DiagnosticsMenu.RuntimeTooltip.OverlayDocument;
 
-                Assert.That(presenter, Is.Not.Null);
-                Assert.That(
-                    presenter.GetType(),
-                    Is.EqualTo(typeof(ViewerNavigationToolbarPresenter)));
-                Assert.That(presenter.Document, Is.Not.Null);
-                PanelSettings canonicalPanelSettings =
-                    DeucarianUIRuntimeAssets.LoadRuntimePanelSettings();
-                Assert.That(canonicalPanelSettings, Is.Not.Null);
-                Assert.That(
-                    presenter.Document.panelSettings,
-                    Is.SameAs(canonicalPanelSettings));
-                Assert.That(
-                    DeucarianUIRuntime.HasCanonicalPanelSettings(
-                        presenter.Document),
-                    Is.True);
                 Assert.That(
                     DeucarianUIRuntime.IsConfigured(
-                        presenter.Document,
+                        navigationDocument,
                         DeucarianUISurfaceRole.PrimaryControls),
                     Is.True);
                 Assert.That(
-                    presenter.Document.sortingOrder,
-                    Is.EqualTo(
-                        DeucarianUIDepth.Resolve(
-                            DeucarianUISurfaceRole.PrimaryControls)));
-                Assert.That(presenter.Root, Is.Not.Null);
-                Assert.That(
-                    presenter.Root.name,
-                    Is.EqualTo(ViewerNavigationToolbarPresenter.RootName));
-                Assert.That(
-                    presenter.Root.pickingMode,
-                    Is.EqualTo(PickingMode.Ignore));
-
-                VisualElement toolbar = presenter.Root.Q<VisualElement>(
-                    ViewerNavigationToolbarPresenter.ToolbarName);
-                Assert.That(toolbar, Is.Not.Null);
-                Assert.That(
-                    toolbar.pickingMode,
-                    Is.EqualTo(PickingMode.Position));
-
-                AssertCanonicalButton(
-                    toolbar,
-                    ViewerNavigationToolbarPresenter.OrbitButtonName,
-                    ViewerNavigationToolbarPresenter.OrbitIconName,
-                    ViewerNavigationToolbarPresenter.OrbitTooltip);
-                AssertCanonicalButton(
-                    toolbar,
-                    ViewerNavigationToolbarPresenter.FlyButtonName,
-                    ViewerNavigationToolbarPresenter.FlyIconName,
-                    ViewerNavigationToolbarPresenter.FlyTooltip);
-                AssertCanonicalButton(
-                    toolbar,
-                    ViewerNavigationToolbarPresenter.HomeButtonName,
-                    ViewerNavigationToolbarPresenter.HomeIconName,
-                    ViewerNavigationToolbarPresenter.HomeTooltip);
-
-                Button topDown = toolbar.Q<Button>(
-                    ViewerNavigationToolbarPresenter.TopDownButtonName);
-                Assert.That(topDown, Is.Not.Null);
-                Assert.That(topDown.focusable, Is.True);
-                Assert.That(
-                    topDown.pickingMode,
-                    Is.EqualTo(PickingMode.Position));
-                Assert.That(
-                    topDown.tooltip,
-                    Is.EqualTo(ViewerNavigationToolbarPresenter.TopDownTooltip));
-                AssertIgnoredIcon(
-                    topDown,
-                    ViewerNavigationToolbarPresenter.TopDownIconName);
-                AssertIgnoredIcon(
-                    topDown,
-                    ViewerNavigationToolbarPresenter.PerspectiveIconName);
-
-                ViewerNavigationReferenceCompositionProfile composition =
-                    bootstrap.ResolvedNavigationComposition;
-                Assert.That(
-                    composition.ThemeProfile,
-                    Is.SameAs(DeucarianViewerReferenceThemePreset.Resolve()));
-                Assert.That(
-                    installer.ThemeProvider.CurrentTheme,
-                    Is.SameAs(
-                        composition.ThemeProfile.ResolveTheme(
-                            composition.ThemeMode)));
-                Assert.That(
-                    installer.Controller.InteractionGate,
-                    Is.Not.Null);
-
-                WebViewerStatusOverlay statusOverlay =
-                    root.AddComponent<WebViewerStatusOverlay>();
-                statusOverlay.Initialize(null, installer.ThemeProvider);
-                Assert.That(
-                    statusOverlay.StatusDocument.panelSettings,
-                    Is.SameAs(canonicalPanelSettings));
-                Assert.That(
                     DeucarianUIRuntime.IsConfigured(
-                        statusOverlay.StatusDocument,
+                        statusDocument,
                         DeucarianUISurfaceRole.Status),
                     Is.True);
-
-                PropertyInfo runtimeTooltipProperty =
-                    typeof(ViewerNavigationToolbarPresenter).GetProperty(
-                        "RuntimeTooltip",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(runtimeTooltipProperty, Is.Not.Null);
-                var runtimeTooltip = runtimeTooltipProperty.GetValue(presenter)
-                    as DeucarianRuntimeTooltipPresenter;
-                Assert.That(runtimeTooltip, Is.Not.Null);
-                UIDocument tooltipDocument = runtimeTooltip.OverlayDocument;
-                Assert.That(tooltipDocument, Is.Not.Null);
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        diagnosticsDocument,
+                        DeucarianUISurfaceRole.Menu),
+                    Is.True);
+                Assert.That(
+                    DeucarianUIRuntime.IsConfigured(
+                        settingsDocument,
+                        DeucarianUISurfaceRole.Menu),
+                    Is.True);
                 Assert.That(
                     DeucarianUIRuntime.IsConfigured(
                         tooltipDocument,
                         DeucarianUISurfaceRole.Tooltip),
                     Is.True);
                 Assert.That(
-                    tooltipDocument.sortingOrder,
-                    Is.EqualTo(
-                        DeucarianUIDepth.Resolve(
-                            DeucarianUISurfaceRole.Tooltip)));
-                Assert.That(tooltipDocument.panelSettings, Is.Not.Null);
-                Assert.That(
-                    tooltipDocument.panelSettings,
-                    Is.Not.SameAs(canonicalPanelSettings));
-                Assert.That(
-                    tooltipDocument.panelSettings.sortingOrder,
-                    Is.EqualTo(
-                        DeucarianUIDepth.Resolve(
-                            DeucarianUISurfaceRole.Tooltip)));
-                Assert.That(tooltipDocument.panelSettings.clearColor, Is.False);
-                Assert.That(
-                    tooltipDocument.panelSettings.clearDepthStencil,
-                    Is.False);
-                Assert.That(
-                    statusOverlay.StatusDocument.sortingOrder,
-                    Is.GreaterThan(presenter.Document.sortingOrder));
+                    statusDocument.sortingOrder,
+                    Is.GreaterThan(navigationDocument.sortingOrder));
                 Assert.That(
                     tooltipDocument.sortingOrder,
-                    Is.GreaterThan(
-                        statusOverlay.StatusDocument.sortingOrder));
+                    Is.GreaterThan(statusDocument.sortingOrder));
                 Assert.That(
-                    tooltipDocument.panelSettings.sortingOrder,
-                    Is.GreaterThan(
-                        statusOverlay.StatusDocument.panelSettings
-                            .sortingOrder));
+                    tooltipDocument.sortingOrder,
+                    Is.GreaterThan(diagnosticsDocument.sortingOrder));
+                Assert.That(
+                    tooltipDocument.sortingOrder,
+                    Is.GreaterThan(settingsDocument.sortingOrder));
+                Assert.That(
+                    shell.DiagnosticsMenu.RuntimeTooltip.OverlayDocument,
+                    Is.SameAs(
+                        shell.DisplaySettingsMenu.RuntimeTooltip
+                            .OverlayDocument));
             }
             finally
             {
@@ -528,33 +306,34 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 string.Join("\n", violations));
         }
 
-        private static void AssertCanonicalButton(
-            VisualElement toolbar,
-            string buttonName,
-            string iconName,
-            string tooltip)
+        private static void InstallReferenceStack(
+            WebViewerBootstrap bootstrap,
+            out ViewerRenderingInstaller rendering,
+            out ViewerNavigationInstaller navigation,
+            out ViewerShellPresenter shell)
         {
-            Button button = toolbar.Q<Button>(buttonName);
-            Assert.That(button, Is.Not.Null, buttonName);
-            Assert.That(button.focusable, Is.True, buttonName);
-            Assert.That(
-                button.pickingMode,
-                Is.EqualTo(PickingMode.Position),
-                buttonName);
-            Assert.That(button.tooltip, Is.EqualTo(tooltip), buttonName);
-            AssertIgnoredIcon(button, iconName);
-        }
+            MethodInfo installRendering = typeof(WebViewerBootstrap).GetMethod(
+                "InstallRendering",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo installNavigation = typeof(WebViewerBootstrap).GetMethod(
+                "InstallNavigation",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo installShell = typeof(WebViewerBootstrap).GetMethod(
+                "InstallShell",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(installRendering, Is.Not.Null);
+            Assert.That(installNavigation, Is.Not.Null);
+            Assert.That(installShell, Is.Not.Null);
 
-        private static void AssertIgnoredIcon(
-            VisualElement parent,
-            string iconName)
-        {
-            VisualElement icon = parent.Q<VisualElement>(iconName);
-            Assert.That(icon, Is.Not.Null, iconName);
-            Assert.That(
-                icon.pickingMode,
-                Is.EqualTo(PickingMode.Ignore),
-                iconName);
+            rendering = (ViewerRenderingInstaller)installRendering.Invoke(
+                bootstrap,
+                null);
+            navigation = (ViewerNavigationInstaller)installNavigation.Invoke(
+                bootstrap,
+                null);
+            shell = (ViewerShellPresenter)installShell.Invoke(
+                bootstrap,
+                new object[] { rendering });
         }
     }
 }
