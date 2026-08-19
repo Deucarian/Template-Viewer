@@ -1,5 +1,5 @@
 using Deucarian.API.Models;
-using Deucarian.TemplateViewerWeb.Loading;
+using Deucarian.ObjectLoading.APIIntegration;
 using NUnit.Framework;
 
 namespace Deucarian.TemplateViewerWeb.Tests
@@ -7,55 +7,73 @@ namespace Deucarian.TemplateViewerWeb.Tests
     public sealed class WebViewerModelAuthenticationPolicyTests
     {
         [Test]
-        public void RelativeModelUsesLiveProviderWithoutTokenOverride()
+        public void RelativeModelResolvesToProviderOptionalSource()
         {
+            var policy = new ApiObjectLoadingTrustedOriginPolicy(
+                "https://api.example.com/v1");
+
+            ApiObjectLoadingRequestResolution request =
+                policy.ResolveProviderOptionalRequest(
+                    "models/current.bundle");
+
             Assert.That(
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    "models/current.bundle",
-                    "https://api.example.com/v1"),
+                request.ResolvedUrl,
+                Is.EqualTo(
+                    "https://api.example.com/v1/models/current.bundle"));
+            Assert.That(
+                request.Authentication,
                 Is.EqualTo(ApiAuthenticationRequirement.Optional));
         }
 
         [Test]
-        public void SameOriginAbsoluteModelUsesLiveProvider()
+        public void SameOriginAbsoluteModelUsesOptionalLiveProvider()
         {
+            var policy = new ApiObjectLoadingTrustedOriginPolicy(
+                "https://api.example.com/v1");
+
             Assert.That(
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    "https://api.example.com/models/current.bundle",
-                    "https://api.example.com/v1"),
+                policy.ResolveProviderOptionalRequest(
+                    "https://api.example.com/models/current.bundle")
+                    .Authentication,
                 Is.EqualTo(ApiAuthenticationRequirement.Optional));
         }
 
         [Test]
-        public void UntrustedCrossOriginModelNeverReceivesSessionToken()
+        public void UntrustedCrossOriginModelRemainsAnonymous()
         {
+            var policy = new ApiObjectLoadingTrustedOriginPolicy(
+                "https://api.example.com/v1");
+
+            ApiObjectLoadingRequestResolution request =
+                policy.ResolveProviderOptionalRequest(
+                    "https://cdn.other.example/model.bundle");
+
             Assert.That(
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    "https://cdn.other.example/model.bundle",
-                    "https://api.example.com/v1"),
+                request.Authentication,
                 Is.EqualTo(ApiAuthenticationRequirement.Disabled));
         }
 
         [Test]
         public void ExplicitExactOriginAllowsPrivateCdn()
         {
+            var policy = new ApiObjectLoadingTrustedOriginPolicy(
+                "https://api.example.com/v1",
+                new[] { "https://cdn.example.com" });
+
             Assert.That(
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    "https://cdn.example.com/model.bundle",
-                    "https://api.example.com/v1",
-                    new[] { "https://cdn.example.com" }),
+                policy.ResolveProviderOptionalRequest(
+                    "https://cdn.example.com/model.bundle")
+                    .Authentication,
                 Is.EqualTo(ApiAuthenticationRequirement.Optional));
         }
 
         [Test]
-        public void OriginEntryWithPathIsNotTreatedAsAnAllowlistOrigin()
+        public void OriginEntryWithPathIsRejectedAsInvalidConfiguration()
         {
-            Assert.That(
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    "https://cdn.example.com/model.bundle",
+            Assert.Throws<System.ArgumentException>(
+                () => new ApiObjectLoadingTrustedOriginPolicy(
                     "https://api.example.com/v1",
-                    new[] { "https://cdn.example.com/private" }),
-                Is.EqualTo(ApiAuthenticationRequirement.Disabled));
+                    new[] { "https://cdn.example.com/private" }));
         }
     }
 }

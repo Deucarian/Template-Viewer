@@ -16,9 +16,10 @@ production extension. No backend DTO or version-resolution policy is assumed.
 
 For private models, open **Tools > Deucarian > Viewer > Authentication** while
 the sample is running, or send `update_access_token` before initializing. The
-live session token is attached only to API-relative, configured API-origin, or
-explicitly allowlisted model origins. Existing hosts may continue sending the
-legacy `updateaccesstoken` alias.
+live session token is attached only after the model URL resolves to the
+configured API origin or an explicitly allowlisted exact origin. Other absolute
+HTTP(S) model URLs remain anonymous public downloads. Existing hosts may
+continue sending the legacy `updateaccesstoken` alias.
 
 Use `Browser~/harness.html` from a local HTTP server to exercise initialization,
 selection, clear, invalid IDs, stale revisions, and disposal against a WebGL
