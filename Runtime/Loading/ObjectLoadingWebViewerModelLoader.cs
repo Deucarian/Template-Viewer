@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.API.Core;
-using Deucarian.API.Models;
 using Deucarian.ObjectLoading;
 using Deucarian.ObjectLoading.APIIntegration;
 using UnityEngine;
@@ -16,8 +15,8 @@ namespace Deucarian.TemplateViewerWeb.Loading
         private readonly MonoBehaviour coroutineOwner;
         private readonly IApiClient apiClient;
         private readonly Transform modelParent;
-        private readonly string apiBaseUrl;
-        private readonly IReadOnlyCollection<string> authenticatedModelOrigins;
+        private readonly ApiObjectLoadingTrustedOriginPolicy
+            authenticationPolicy;
         private ObjectLoadingPipeline activePipeline;
         private CancellationTokenSource activeCancellation;
         private int generation;
@@ -41,10 +40,9 @@ namespace Deucarian.TemplateViewerWeb.Loading
             coroutineOwner = owner ?? throw new ArgumentNullException(nameof(owner));
             apiClient = client ?? throw new ArgumentNullException(nameof(client));
             modelParent = parent ?? throw new ArgumentNullException(nameof(parent));
-            apiBaseUrl = configuredApiBaseUrl;
-            authenticatedModelOrigins = additionalAuthenticatedOrigins == null
-                ? Array.Empty<string>()
-                : new List<string>(additionalAuthenticatedOrigins);
+            authenticationPolicy = new ApiObjectLoadingTrustedOriginPolicy(
+                configuredApiBaseUrl,
+                additionalAuthenticatedOrigins);
         }
 
         public event Action<float, string> ProgressChanged;
@@ -60,23 +58,29 @@ namespace Deucarian.TemplateViewerWeb.Loading
                     "Object Loading requires a source URL."));
             }
 
+            if (!authenticationPolicy.TryResolveProviderOptionalRequest(
+                    descriptor.SourceUrl,
+                    out ApiObjectLoadingRequestResolution
+                        authenticatedSource,
+                    out string authenticationIssue))
+            {
+                return Task.FromResult(WebViewerModelLoadResult.Failure(
+                    authenticationIssue));
+            }
+
             Unload();
             int loadGeneration = generation;
             activeCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken);
             CancellationToken token = activeCancellation.Token;
-            ApiAuthenticationRequirement providerAuthentication =
-                WebViewerModelAuthenticationPolicy.Resolve(
-                    descriptor.SourceUrl,
-                    apiBaseUrl,
-                    authenticatedModelOrigins);
             ObjectLoadingPipeline pipeline =
                 ApiObjectLoadingPipelineFactory.Create(
                     apiClient,
-                    providerAuthentication);
+                    authenticatedSource.Authentication);
             var completion = new TaskCompletionSource<WebViewerModelLoadResult>();
 
-            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(descriptor.SourceUrl);
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                authenticatedSource.ResolvedUrl);
             request.Parent = modelParent;
             request.DisplayName = descriptor.ModelId.Length > 0
                 ? "Web viewer model " + descriptor.ModelId

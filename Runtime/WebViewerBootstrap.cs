@@ -43,7 +43,7 @@ namespace Deucarian.TemplateViewerWeb
         [Tooltip("Optional credential-free token endpoint profile. When omitted, the shared Viewer Authentication Resources profile is used when present.")]
         [SerializeField] private SessionTokenEndpointProfile
             authenticationTokenEndpointProfile;
-        [Tooltip("Additional exact HTTP(S) origins that may receive the live viewer session token for model downloads. Cross-origin URLs stay anonymous unless listed here.")]
+        [Tooltip("Additional exact HTTP(S) origins eligible for the live session provider. Unlisted absolute cross-origin URLs remain anonymous public downloads.")]
         [SerializeField] private List<string> authenticatedModelOrigins =
             new List<string>();
         private ViewerNavigationReferenceCompositionProfile _navigationComposition;
