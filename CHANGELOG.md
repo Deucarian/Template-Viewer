@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.19] - 2026-08-19
+
+### Changed
+
+- Replaced the template-local model authentication rule with Object Loading API
+  Integration's shared trusted-origin policy.
+- Canonicalizes relative model endpoints against the active connection's API
+  base before loading and uses optional live-provider authentication for trusted
+  relative, same-origin, and explicitly allowlisted destinations.
+- Preserves anonymous public loading for untrusted absolute HTTP(S) model URLs,
+  including when the viewer has no configured API base.
+- Updated Object Loading API Integration to 0.2.8.
+
 ## [0.1.18] - 2026-08-19
 
 ### Added
