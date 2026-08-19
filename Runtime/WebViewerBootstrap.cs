@@ -62,10 +62,11 @@ namespace Deucarian.TemplateViewerWeb
         private ViewerShellPresenter shellPresenter;
         private WebViewerShellStatusAdapter shellStatusAdapter;
         private DeucarianThemeProvider referenceThemeProvider;
-        private ViewerAuthenticationSession authenticationSession;
+        private IViewerAuthenticationSession authenticationSession;
         private IViewerAuthenticationAcquisitionProvider
             authenticationAcquisitionProvider;
         private IDisposable authenticationTargetRegistration;
+        private IDisposable runtimeConnection;
 
         public bool IframeMode => iframeMode;
         public string ParentOrigin => parentOrigin;
@@ -158,120 +159,337 @@ namespace Deucarian.TemplateViewerWeb
 
         private void OnDestroy()
         {
-            authenticationTargetRegistration?.Dispose();
-            authenticationTargetRegistration = null;
-            authenticationAcquisitionProvider = null;
-            shellStatusAdapter?.Dispose();
-            shellStatusAdapter = null;
-            commandBridge?.Dispose();
-            commandBridge = null;
-            localCommandPort?.Clear(commandRuntime);
-            localCommandPort = null;
-            application?.Dispose();
-            application = null;
-            commandRuntime?.Dispose();
-            commandRuntime = null;
-            diagnosticRegistration?.Dispose();
-            diagnosticRegistration = null;
-            shellPresenter?.Dispose();
-            shellPresenter = null;
-            navigationInstaller = null;
-            renderingInstaller = null;
-            if (modelLoader != null)
-            {
-                modelLoader.ProgressChanged -= OnModelLoadingProgress;
-                modelLoader = null;
-            }
+            ReleaseComposition();
         }
 
         private void Compose()
         {
-            ViewerRenderingInstaller rendering = InstallRendering();
-            ViewerNavigationInstaller navigation = InstallNavigation();
-            ViewerShellPresenter shell = InstallShell(rendering);
-
-            if (!TryValidateConfiguration(false, out string issue))
+            try
             {
-                throw new InvalidOperationException(issue);
+                ViewerRenderingInstaller rendering = InstallRendering();
+                ViewerNavigationInstaller navigation = InstallNavigation();
+                ViewerShellPresenter shell = InstallShell(rendering);
+
+                if (!TryValidateConfiguration(false, out string issue))
+                {
+                    throw new InvalidOperationException(issue);
+                }
+
+                navigation.BeginReferenceLoad();
+
+                ComposeAuthentication(
+                    out IApiClient apiClient,
+                    out string apiBaseUrl,
+                    out IReadOnlyCollection<string>
+                        effectiveAuthenticatedOrigins);
+                modelLoader = new ObjectLoadingWebViewerModelLoader(
+                    this,
+                    apiClient,
+                    loadedModelParent,
+                    apiBaseUrl,
+                    effectiveAuthenticatedOrigins);
+                modelLoader.ProgressChanged += OnModelLoadingProgress;
+
+                WebGlCommandTransportMode mode = iframeMode
+                    ? WebGlCommandTransportMode.ParentIframe
+                    : WebGlCommandTransportMode.DirectPage;
+                string[] allowedOrigins = iframeMode
+                    ? new[] { parentOrigin }
+                    : Array.Empty<string>();
+                var transportOptions = new WebGlCommandTransportOptions(
+                    transportId,
+                    mode,
+                    allowedOrigins,
+                    iframeMode ? parentOrigin : null);
+                var transport = new WebGlCommandTransport(transportOptions);
+                WebGlCommandTransportBehaviour behaviour =
+                    gameObject.AddComponent<WebGlCommandTransportBehaviour>();
+                behaviour.Initialize(transport);
+
+                string browserEndpoint = iframeMode
+                    ? "parent:" + transportOptions.TargetOrigin
+                    : "direct";
+                var eventPublisher =
+                    new WebGlWebViewerEventPublisher(transport);
+                var authenticationEventPublisher =
+                    new WebViewerAuthenticationEventPublisher(
+                        eventPublisher,
+                        browserEndpoint);
+
+                application = new WebViewerApplication(
+                    new DirectWebViewerModelDescriptorResolver(),
+                    modelLoader,
+                    navigation,
+                    eventPublisher,
+                    embeddedReferenceModel,
+                    authenticationSession);
+                commandRuntime = new CommandRoutingRuntime<WebViewerApplication>(
+                    application,
+                    WebViewerCommandHandlers.Create(authenticationEventPublisher),
+                    new CommandRoutingOptions(
+                        historyCapacity: 64,
+                        logSuccessfulCommands: false,
+                        logFailedCommands: true));
+                localCommandPort =
+                    GetComponent<CommandRoutePortBehaviour>() ??
+                    gameObject.AddComponent<CommandRoutePortBehaviour>();
+                localCommandPort.Initialize(commandRuntime);
+                commandBridge = new CommandTransportBridge<WebViewerApplication>(
+                    commandRuntime,
+                    transport,
+                    shouldSendResponses: true,
+                    disposeTransport: true);
+                diagnosticRegistration = DiagnosticProviderRegistry.Register(
+                    new WebViewerApplicationDiagnosticProvider(application));
+                shellStatusAdapter = new WebViewerShellStatusAdapter(
+                    application,
+                    shell);
+                commandBridge.Start();
+            }
+            catch
+            {
+                ReleaseComposition();
+                throw;
+            }
+        }
+
+        private void ComposeAuthentication(
+            out IApiClient apiClient,
+            out string apiBaseUrl,
+            out IReadOnlyCollection<string> effectiveAuthenticatedOrigins)
+        {
+            ViewerRuntimeConnectionResolution resolution =
+                ViewerRuntimeConnectionProviderRegistry.Resolve();
+            if (resolution == null)
+            {
+                throw new InvalidOperationException(
+                    "Runtime connection resolution returned no result.");
             }
 
-            navigation.BeginReferenceLoad();
+            if (ShouldUseLocalAuthentication(resolution.Status))
+            {
+                var localSession = new ViewerAuthenticationSession();
+                IApiClient localClient = ApiClientFactory.Create(
+                    apiClientConfig,
+                    localSession.ApiAuthProvider);
+                IViewerAuthenticationAcquisitionProvider localProvider =
+                    CreateAuthenticationAcquisitionProvider(localClient);
+                IDisposable localRegistration =
+                    ViewerAuthenticationTargetRegistry.Register(
+                        "web-viewer-" + GetInstanceID(),
+                        "Web Viewer",
+                        localSession,
+                        localProvider);
 
-            authenticationSession = new ViewerAuthenticationSession();
-            IApiClient apiClient = ApiClientFactory.Create(
-                apiClientConfig,
-                authenticationSession.ApiAuthProvider);
-            authenticationAcquisitionProvider =
-                CreateAuthenticationAcquisitionProvider(apiClient);
-            authenticationTargetRegistration =
-                ViewerAuthenticationTargetRegistry.Register(
-                    "web-viewer-" + GetInstanceID(),
-                    "Web Viewer",
-                    authenticationSession,
-                    authenticationAcquisitionProvider);
-            modelLoader = new ObjectLoadingWebViewerModelLoader(
-                this,
-                apiClient,
-                loadedModelParent,
-                apiClientConfig != null ? apiClientConfig.BaseUrl : null,
-                authenticatedModelOrigins);
-            modelLoader.ProgressChanged += OnModelLoadingProgress;
+                authenticationSession = localSession;
+                authenticationAcquisitionProvider = localProvider;
+                authenticationTargetRegistration = localRegistration;
+                apiClient = localClient;
+                apiBaseUrl = apiClientConfig != null
+                    ? apiClientConfig.BaseUrl
+                    : null;
+                effectiveAuthenticatedOrigins = MergeAuthenticatedOrigins(null);
+                return;
+            }
 
-            WebGlCommandTransportMode mode = iframeMode
-                ? WebGlCommandTransportMode.ParentIframe
-                : WebGlCommandTransportMode.DirectPage;
-            string[] allowedOrigins = iframeMode
-                ? new[] { parentOrigin }
-                : Array.Empty<string>();
-            var transportOptions = new WebGlCommandTransportOptions(
-                transportId,
-                mode,
-                allowedOrigins,
-                iframeMode ? parentOrigin : null);
-            var transport = new WebGlCommandTransport(transportOptions);
-            WebGlCommandTransportBehaviour behaviour =
-                gameObject.AddComponent<WebGlCommandTransportBehaviour>();
-            behaviour.Initialize(transport);
+            ViewerRuntimeConnection connection = resolution.Connection;
+            if (!IsValidRuntimeConnection(connection))
+            {
+                connection?.Dispose();
+                throw new InvalidOperationException(
+                    "The resolved runtime connection is incomplete.");
+            }
 
-            string browserEndpoint = iframeMode
-                ? "parent:" + transportOptions.TargetOrigin
-                : "direct";
-            var eventPublisher =
-                new WebGlWebViewerEventPublisher(transport);
-            var authenticationEventPublisher =
-                new WebViewerAuthenticationEventPublisher(
-                    eventPublisher,
-                    browserEndpoint);
+            try
+            {
+                ViewerAuthenticationTargetRegistry.TryGet(
+                    connection.TargetId,
+                    out ViewerAuthenticationTarget target);
+                authenticationSession = connection.Session;
+                authenticationAcquisitionProvider =
+                    target?.AcquisitionProvider;
+                authenticationTargetRegistration = null;
+                apiClient = connection.ApiClient;
+                apiBaseUrl = connection.ApiBaseUrl;
+                effectiveAuthenticatedOrigins = MergeAuthenticatedOrigins(
+                    connection.AuthenticatedOrigins);
+                runtimeConnection = connection;
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+        }
 
-            application = new WebViewerApplication(
-                new DirectWebViewerModelDescriptorResolver(),
-                modelLoader,
-                navigation,
-                eventPublisher,
-                embeddedReferenceModel,
-                authenticationSession);
-            commandRuntime = new CommandRoutingRuntime<WebViewerApplication>(
-                application,
-                WebViewerCommandHandlers.Create(authenticationEventPublisher),
-                new CommandRoutingOptions(
-                    historyCapacity: 64,
-                    logSuccessfulCommands: false,
-                    logFailedCommands: true));
-            localCommandPort =
-                GetComponent<CommandRoutePortBehaviour>() ??
-                gameObject.AddComponent<CommandRoutePortBehaviour>();
-            localCommandPort.Initialize(commandRuntime);
-            commandBridge = new CommandTransportBridge<WebViewerApplication>(
-                commandRuntime,
-                transport,
-                shouldSendResponses: true,
-                disposeTransport: true);
-            diagnosticRegistration = DiagnosticProviderRegistry.Register(
-                new WebViewerApplicationDiagnosticProvider(application));
-            shellStatusAdapter = new WebViewerShellStatusAdapter(
-                application,
-                shell);
-            commandBridge.Start();
+        private static bool ShouldUseLocalAuthentication(
+            ViewerRuntimeConnectionResolutionStatus status)
+        {
+            switch (status)
+            {
+                case ViewerRuntimeConnectionResolutionStatus.None:
+                    return true;
+                case ViewerRuntimeConnectionResolutionStatus.Resolved:
+                    return false;
+                case ViewerRuntimeConnectionResolutionStatus.Failed:
+                    throw new InvalidOperationException(
+                        "The optional runtime connection provider failed.");
+                case ViewerRuntimeConnectionResolutionStatus.Ambiguous:
+                    throw new InvalidOperationException(
+                        "Multiple runtime connection providers are active.");
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(status),
+                        status,
+                        "Unknown runtime connection resolution status.");
+            }
+        }
+
+        private static bool IsValidRuntimeConnection(
+            ViewerRuntimeConnection connection)
+        {
+            if (connection == null ||
+                string.IsNullOrWhiteSpace(connection.TargetId) ||
+                connection.Session == null ||
+                connection.ApiClient == null)
+            {
+                return false;
+            }
+
+            if (!ViewerAuthenticationTargetRegistry.TryGet(
+                    connection.TargetId,
+                    out ViewerAuthenticationTarget target) ||
+                !ReferenceEquals(target.Session, connection.Session))
+            {
+                return false;
+            }
+
+            return Uri.TryCreate(
+                       connection.ApiBaseUrl,
+                       UriKind.Absolute,
+                       out Uri baseUri) &&
+                   (baseUri.Scheme == Uri.UriSchemeHttp ||
+                    baseUri.Scheme == Uri.UriSchemeHttps) &&
+                   string.IsNullOrEmpty(baseUri.UserInfo) &&
+                   string.IsNullOrEmpty(baseUri.Query) &&
+                   string.IsNullOrEmpty(baseUri.Fragment);
+        }
+
+        private IReadOnlyCollection<string> MergeAuthenticatedOrigins(
+            IEnumerable<string> connectionOrigins)
+        {
+            var merged = new List<string>();
+            AddOrigins(merged, connectionOrigins);
+            AddOrigins(merged, authenticatedModelOrigins);
+            return merged;
+        }
+
+        private static void AddOrigins(
+            ICollection<string> destination,
+            IEnumerable<string> origins)
+        {
+            if (origins == null)
+            {
+                return;
+            }
+
+            foreach (string origin in origins)
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                {
+                    continue;
+                }
+
+                string normalized = origin.Trim();
+                bool exists = false;
+                foreach (string current in destination)
+                {
+                    if (string.Equals(
+                            current,
+                            normalized,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists)
+                {
+                    destination.Add(normalized);
+                }
+            }
+        }
+
+        private void ReleaseComposition()
+        {
+            WebViewerShellStatusAdapter statusAdapter = shellStatusAdapter;
+            shellStatusAdapter = null;
+            TryCleanup(() => statusAdapter?.Dispose());
+
+            CommandTransportBridge<WebViewerApplication> bridge = commandBridge;
+            commandBridge = null;
+            TryCleanup(() => bridge?.Dispose());
+
+            CommandRoutePortBehaviour routePort = localCommandPort;
+            CommandRoutingRuntime<WebViewerApplication> runtime = commandRuntime;
+            localCommandPort = null;
+            TryCleanup(() => routePort?.Clear(runtime));
+
+            WebViewerApplication currentApplication = application;
+            application = null;
+            TryCleanup(() => currentApplication?.Dispose());
+
+            commandRuntime = null;
+            TryCleanup(() => runtime?.Dispose());
+
+            DiagnosticProviderRegistration diagnostics = diagnosticRegistration;
+            diagnosticRegistration = null;
+            TryCleanup(() => diagnostics?.Dispose());
+
+            ViewerShellPresenter presenter = shellPresenter;
+            shellPresenter = null;
+            TryCleanup(() => presenter?.Dispose());
+
+            navigationInstaller = null;
+            renderingInstaller = null;
+
+            ObjectLoadingWebViewerModelLoader loader = modelLoader;
+            modelLoader = null;
+            if (loader != null)
+            {
+                loader.ProgressChanged -= OnModelLoadingProgress;
+                TryCleanup(loader.Dispose);
+            }
+
+            ReleaseAuthenticationComposition();
+        }
+
+        private void ReleaseAuthenticationComposition()
+        {
+            IDisposable targetRegistration = authenticationTargetRegistration;
+            authenticationTargetRegistration = null;
+            TryCleanup(() => targetRegistration?.Dispose());
+
+            IDisposable connection = runtimeConnection;
+            runtimeConnection = null;
+            TryCleanup(() => connection?.Dispose());
+
+            authenticationAcquisitionProvider = null;
+            authenticationSession = null;
+        }
+
+        private static void TryCleanup(Action cleanup)
+        {
+            try
+            {
+                cleanup?.Invoke();
+            }
+            catch (Exception)
+            {
+                // Cleanup is best-effort and must continue so no later
+                // transport, route, target, or session lease remains live.
+            }
         }
 
         private IViewerAuthenticationAcquisitionProvider
