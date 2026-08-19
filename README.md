@@ -154,12 +154,19 @@ allowed and target origin, validates the parent source window, and never sends
 to `*`. Production validation additionally requires a non-loopback HTTPS origin.
 The host owns the Unity instance and disposes its listeners on teardown.
 
-Model downloads use the live session provider only for API-relative URLs,
-URLs on the configured API origin, or exact additional origins explicitly
-allowlisted on `WebViewerBootstrap`. Other cross-origin URLs are deliberately
-anonymous so a host-supplied URL cannot receive the viewer credential.
+Model downloads use Object Loading API Integration's shared trusted-origin
+policy. API-relative URLs are first resolved to a canonical absolute URL against
+the active connection's API base. Absolute URLs must match that base origin or
+an exact additional origin explicitly allowlisted on `WebViewerBootstrap`.
+Trusted destinations use the optional live session provider. Untrusted absolute
+HTTP(S) URLs remain supported as explicitly anonymous public downloads, including
+when no API base is configured. Invalid URLs are rejected. Origin matching
+includes the exact scheme, host, and effective port, and origin entries
+containing paths, user information, queries, fragments, or wildcards are
+invalid.
+
 An optional runtime connection contributes its own validated API base and exact
-authenticated origins to the same policy. Connection packages pass URLs and
+authenticated origins to the shared policy. Connection packages pass URLs and
 version metadata only; bearer tokens never belong in `model_url`, command
 payloads, query strings, or diagnostics.
 
