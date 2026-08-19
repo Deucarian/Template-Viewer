@@ -49,6 +49,15 @@ instead supply an HTTP(S) or API-relative `model_url`. Replace
 must resolve a project/model/version context. Do not put backend DTOs in this
 template.
 
+An optional connection package can register one vendor-neutral runtime
+connection through Viewer Authentication. When exactly one provider resolves,
+the template reuses its stable authentication target, session, API client,
+configured API base URL, and authenticated model origins. The template does not
+create a second target or copy its token. With no provider it retains the
+generic, template-owned authentication composition below. A failed provider or
+multiple active providers stop initialization; the template never silently
+falls back to a different session after a connection was requested.
+
 For an authenticated development session, open **Tools > Deucarian > Viewer >
 Authentication**. Paste/replace input is masked and cleared immediately. An
 optional remembered token is stored only in this Unity project's local
@@ -149,6 +158,10 @@ Model downloads use the live session provider only for API-relative URLs,
 URLs on the configured API origin, or exact additional origins explicitly
 allowlisted on `WebViewerBootstrap`. Other cross-origin URLs are deliberately
 anonymous so a host-supplied URL cannot receive the viewer credential.
+An optional runtime connection contributes its own validated API base and exact
+authenticated origins to the same policy. Connection packages pass URLs and
+version metadata only; bearer tokens never belong in `model_url`, command
+payloads, query strings, or diagnostics.
 
 ## Build profiles
 
@@ -169,6 +182,9 @@ Build Pipeline excludes development diagnostics and development-context files.
 - add application commands through Command Routing handlers, not the transport.
 - define a credential-free Session API token endpoint profile when the shared
   Authentication menu should offer endpoint-backed Refresh Token.
+- install an optional runtime connection provider when a backend integration
+  should supply one stable authentication session, API client, and trusted
+  model-download origins without product-local bootstrap code.
 
 ## Validation
 

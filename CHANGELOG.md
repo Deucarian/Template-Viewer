@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.18] - 2026-08-19
+
+### Added
+
+- Consumes the optional vendor-neutral Viewer Authentication runtime connection
+  composition when exactly one provider resolves, sharing its stable target,
+  session, API client, base URL, and authenticated model origins.
+
+### Changed
+
+- Keeps the template-owned authentication target only as the no-provider
+  fallback. Failed or ambiguous optional connection providers now stop viewer
+  initialization instead of silently falling back to a different session.
+- Updated Viewer Authentication to 0.5.0 for runtime connection composition.
+
 ## [0.1.17] - 2026-08-19
 
 ### Added
