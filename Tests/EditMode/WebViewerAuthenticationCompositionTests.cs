@@ -201,6 +201,52 @@ namespace Deucarian.TemplateViewerWeb.Tests
         }
 
         [Test]
+        public void PartialCompositionCleanupReleasesTheRuntimeConnection()
+        {
+            string targetId = "template-partial-cleanup-test-" +
+                              Guid.NewGuid().ToString("N");
+            var provider = new RecordingConnectionProvider(targetId);
+            IDisposable providerRegistration =
+                ViewerRuntimeConnectionProviderRegistry.Register(provider);
+            GameObject root = new GameObject("Partial Composition Cleanup Test");
+            try
+            {
+                WebViewerBootstrap bootstrap =
+                    root.AddComponent<WebViewerBootstrap>();
+                MethodInfo compose = GetPrivateMethod("ComposeAuthentication");
+                MethodInfo release = GetPrivateMethod("ReleaseComposition");
+
+                compose.Invoke(bootstrap, new object[] { null, null, null });
+                Assert.That(
+                    ViewerAuthenticationTargetRegistry.TryGet(
+                        targetId,
+                        out _),
+                    Is.True);
+
+                release.Invoke(bootstrap, null);
+
+                Assert.That(
+                    ViewerAuthenticationTargetRegistry.TryGet(
+                        targetId,
+                        out _),
+                    Is.False);
+                ViewerRuntimeConnectionResolution retry =
+                    ViewerRuntimeConnectionProviderRegistry.Resolve();
+                Assert.That(
+                    retry.Status,
+                    Is.EqualTo(
+                        ViewerRuntimeConnectionResolutionStatus.Resolved));
+                retry.Connection.Dispose();
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                provider.LastConnection?.Dispose();
+                providerRegistration.Dispose();
+            }
+        }
+
+        [Test]
         public void BootstrapComposesTheSharedEndpointProviderFromItsProfile()
         {
             GameObject root = new GameObject("Auth Composition Test");

@@ -159,46 +159,24 @@ namespace Deucarian.TemplateViewerWeb
 
         private void OnDestroy()
         {
-            shellStatusAdapter?.Dispose();
-            shellStatusAdapter = null;
-            commandBridge?.Dispose();
-            commandBridge = null;
-            localCommandPort?.Clear(commandRuntime);
-            localCommandPort = null;
-            application?.Dispose();
-            application = null;
-            commandRuntime?.Dispose();
-            commandRuntime = null;
-            diagnosticRegistration?.Dispose();
-            diagnosticRegistration = null;
-            shellPresenter?.Dispose();
-            shellPresenter = null;
-            navigationInstaller = null;
-            renderingInstaller = null;
-            if (modelLoader != null)
-            {
-                modelLoader.ProgressChanged -= OnModelLoadingProgress;
-                modelLoader = null;
-            }
-
-            ReleaseAuthenticationComposition();
+            ReleaseComposition();
         }
 
         private void Compose()
         {
-            ViewerRenderingInstaller rendering = InstallRendering();
-            ViewerNavigationInstaller navigation = InstallNavigation();
-            ViewerShellPresenter shell = InstallShell(rendering);
-
-            if (!TryValidateConfiguration(false, out string issue))
-            {
-                throw new InvalidOperationException(issue);
-            }
-
-            navigation.BeginReferenceLoad();
-
             try
             {
+                ViewerRenderingInstaller rendering = InstallRendering();
+                ViewerNavigationInstaller navigation = InstallNavigation();
+                ViewerShellPresenter shell = InstallShell(rendering);
+
+                if (!TryValidateConfiguration(false, out string issue))
+                {
+                    throw new InvalidOperationException(issue);
+                }
+
+                navigation.BeginReferenceLoad();
+
                 ComposeAuthentication(
                     out IApiClient apiClient,
                     out string apiBaseUrl,
@@ -270,7 +248,7 @@ namespace Deucarian.TemplateViewerWeb
             }
             catch
             {
-                ReleaseAuthenticationComposition();
+                ReleaseComposition();
                 throw;
             }
         }
@@ -443,14 +421,75 @@ namespace Deucarian.TemplateViewerWeb
             }
         }
 
+        private void ReleaseComposition()
+        {
+            WebViewerShellStatusAdapter statusAdapter = shellStatusAdapter;
+            shellStatusAdapter = null;
+            TryCleanup(() => statusAdapter?.Dispose());
+
+            CommandTransportBridge<WebViewerApplication> bridge = commandBridge;
+            commandBridge = null;
+            TryCleanup(() => bridge?.Dispose());
+
+            CommandRoutePortBehaviour routePort = localCommandPort;
+            CommandRoutingRuntime<WebViewerApplication> runtime = commandRuntime;
+            localCommandPort = null;
+            TryCleanup(() => routePort?.Clear(runtime));
+
+            WebViewerApplication currentApplication = application;
+            application = null;
+            TryCleanup(() => currentApplication?.Dispose());
+
+            commandRuntime = null;
+            TryCleanup(() => runtime?.Dispose());
+
+            DiagnosticProviderRegistration diagnostics = diagnosticRegistration;
+            diagnosticRegistration = null;
+            TryCleanup(() => diagnostics?.Dispose());
+
+            ViewerShellPresenter presenter = shellPresenter;
+            shellPresenter = null;
+            TryCleanup(() => presenter?.Dispose());
+
+            navigationInstaller = null;
+            renderingInstaller = null;
+
+            ObjectLoadingWebViewerModelLoader loader = modelLoader;
+            modelLoader = null;
+            if (loader != null)
+            {
+                loader.ProgressChanged -= OnModelLoadingProgress;
+                TryCleanup(loader.Dispose);
+            }
+
+            ReleaseAuthenticationComposition();
+        }
+
         private void ReleaseAuthenticationComposition()
         {
-            authenticationTargetRegistration?.Dispose();
+            IDisposable targetRegistration = authenticationTargetRegistration;
             authenticationTargetRegistration = null;
-            runtimeConnection?.Dispose();
+            TryCleanup(() => targetRegistration?.Dispose());
+
+            IDisposable connection = runtimeConnection;
             runtimeConnection = null;
+            TryCleanup(() => connection?.Dispose());
+
             authenticationAcquisitionProvider = null;
             authenticationSession = null;
+        }
+
+        private static void TryCleanup(Action cleanup)
+        {
+            try
+            {
+                cleanup?.Invoke();
+            }
+            catch (Exception)
+            {
+                // Cleanup is best-effort and must continue so no later
+                // transport, route, target, or session lease remains live.
+            }
         }
 
         private IViewerAuthenticationAcquisitionProvider
