@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1] - 2026-08-25
+
+### Fixed
+
+- Route Editor test commands through the direct-page or parent-iframe endpoint
+  expected by the active Web Viewer transport.
+
 ## [0.3.0] - 2026-08-24
 
 ### Added

@@ -151,6 +151,7 @@ namespace Deucarian.TemplateViewerWeb.Tests
             Assert.That(
                 catalog.Scenarios.Select(value => value.CommandName),
                 Does.Contain("initialize_viewer"));
+            Assert.That(catalog.RemoteEndpoint, Is.EqualTo("direct"));
         }
 
         public sealed class HarnessFeature :

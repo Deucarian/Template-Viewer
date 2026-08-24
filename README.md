@@ -145,6 +145,7 @@ automatically. Authentication examples never contain a real access token.
 
 The same live scene composition registers as a Command Routing test catalog in
 the Unity Editor. The shared Live Tester sends those scenarios through the
+active viewer's direct-page or parent-iframe endpoint and through the
 initialized `CommandRoutePortBehaviour`, so Editor testing exercises the real
 application handlers rather than a second simulation path.
 
