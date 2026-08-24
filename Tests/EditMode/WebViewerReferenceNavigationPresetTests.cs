@@ -162,6 +162,29 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 Assert.That(
                     provider.CurrentStyle.StyleId,
                     Is.EqualTo(DeucarianThemeStyleIds.FrostedGlass));
+                Assert.That(bootstrap.ThemeRuntime, Is.Not.Null);
+                Assert.That(
+                    bootstrap.ThemeRuntime.Provider,
+                    Is.SameAs(provider));
+                Assert.That(
+                    bootstrap.ThemeRuntime.ModeController,
+                    Is.SameAs(
+                        root.GetComponent<DeucarianThemeModeController>()));
+                Assert.That(
+                    bootstrap.ThemeRuntime.SnapshotPublisher,
+                    Is.SameAs(
+                        root.GetComponent<
+                            DeucarianViewerThemeSnapshotPublisher>()));
+                Assert.That(
+                    bootstrap.ThemeRuntime.SnapshotPublisher.Provider,
+                    Is.SameAs(provider));
+                Assert.That(
+                    bootstrap.ThemeRuntime.SnapshotPublisher.LastPublishedJson,
+                    Is.EqualTo(
+                        DeucarianViewerThemeSnapshot.FromTheme(
+                                provider.CurrentTheme,
+                                provider.CurrentStyle)
+                            .ToJson()));
 
                 Assert.That(rendering.Camera, Is.Not.Null);
                 Assert.That(rendering.KeyLight, Is.Not.Null);

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.20] - 2026-08-24
+
+### Changed
+
+- Installs Theming's complete shared viewer reference runtime so generated
+  viewers use the same theme family, persisted light/dark mode, canonical web
+  snapshot, and provider ownership as the Report Viewer reference consumer.
+- Updated Theming to 1.1.0 and added whole-composition parity coverage.
+- Declared the EditMode tests' direct Session assembly dependency and kept
+  Unity object cleanup unambiguous with the current API dependency set.
+
 ## [0.1.19] - 2026-08-19
 
 ### Changed
