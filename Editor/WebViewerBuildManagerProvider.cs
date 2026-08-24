@@ -67,6 +67,8 @@ namespace Deucarian.TemplateViewerWeb.Editor
                 ProductionProfilePath,
                 ProductionScenePath,
                 DeucarianBuildEnvironment.Production);
+            WebViewerCommandHarnessCatalogGenerator.GenerateForScene(
+                DevelopmentScenePath);
         }
 
         private static DeucarianBuildManagerTarget CreateTarget(
