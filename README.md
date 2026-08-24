@@ -46,9 +46,11 @@ navigation, camera state, browser transport, and shell behavior stay shared.
 1. Import the **Web Viewer** sample and open `Scenes/WebViewer.unity`.
 2. Enter Play Mode. The bootstrap creates an embedded three-element model and
    waits for `initialize_viewer`.
-3. For a WebGL build, open the Deucarian Build Pipeline Manager and choose
+3. Open `Tools > Deucarian > Communication > Command Routing`, choose
+   **Live Tester**, and send a generated scenario or run the automatic sequence.
+4. For a WebGL build, open the Deucarian Build Pipeline Manager and choose
    **Sync Profiles** for the Web Viewer Template provider.
-4. Run `npm start` in `Browser~` to test the generated commands immediately
+5. Run `npm start` in `Browser~` to test the generated commands immediately
    against its local mock iframe, or build **Development** and pass that output
    to the same localhost server for an end-to-end Unity WebGL run.
 
@@ -140,6 +142,11 @@ also provide safe payloads and expected outcomes for automation. Product
 features can override `CreateCommandHarnessScenarios()` to add their own valid
 examples; commands without an example remain discoverable but are not run
 automatically. Authentication examples never contain a real access token.
+
+The same live scene composition registers as a Command Routing test catalog in
+the Unity Editor. The shared Live Tester sends those scenarios through the
+initialized `CommandRoutePortBehaviour`, so Editor testing exercises the real
+application handlers rather than a second simulation path.
 
 See `Browser~/README.md` for the mock and real-build launch commands.
 

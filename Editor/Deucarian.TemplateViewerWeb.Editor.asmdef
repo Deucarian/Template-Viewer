@@ -4,6 +4,7 @@
   "references": [
     "Deucarian.BuildPipeline.Editor",
     "Deucarian.CommandRouting",
+    "Deucarian.CommandRouting.Editor",
     "Deucarian.WebGLTemplate.Editor",
     "Deucarian.TemplateViewerWeb",
     "Deucarian.ViewerAuthentication",

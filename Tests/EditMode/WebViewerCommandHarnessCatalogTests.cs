@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.CommandRouting;
+using Deucarian.CommandRouting.Editor;
 using Deucarian.TemplateViewerWeb.Commands;
 using Deucarian.TemplateViewerWeb.Editor;
 using Newtonsoft.Json.Linq;
@@ -127,6 +128,29 @@ namespace Deucarian.TemplateViewerWeb.Tests
             Assert.That(catalog.Scenarios[0].CommandName, Is.EqualTo("inspect_state"));
             Assert.That(catalog.Scenarios[0].Label, Is.EqualTo("Inspect state"));
             Assert.That(catalog.Scenarios[0].RunAutomatically, Is.False);
+        }
+
+        [Test]
+        public void EditorTesterConsumesTheLiveViewerCatalog()
+        {
+            root = new GameObject("Live Tester Catalog");
+            root.AddComponent<WebViewerBootstrap>();
+            var source = new WebViewerCommandTestCatalogSource();
+
+            Assert.That(
+                source.TryGetCatalogJson(out string json, out string error),
+                Is.True,
+                error);
+            Assert.That(
+                CommandTestCatalog.TryParse(
+                    json,
+                    out CommandTestCatalog catalog,
+                    out error),
+                Is.True,
+                error);
+            Assert.That(
+                catalog.Scenarios.Select(value => value.CommandName),
+                Does.Contain("initialize_viewer"));
         }
 
         public sealed class HarnessFeature :
