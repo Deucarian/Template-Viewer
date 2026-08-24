@@ -57,7 +57,18 @@ namespace Deucarian.TemplateViewerWeb.Editor
                 WebViewerCommandHarnessCatalog catalog =
                     WebViewerCommandHarnessCatalogGenerator.CreateCatalog(
                         sceneBootstraps[0]);
-                json = JsonConvert.SerializeObject(catalog, Formatting.Indented);
+                WebViewerBootstrap bootstrap = sceneBootstraps[0];
+                string remoteEndpoint = bootstrap.IframeMode
+                    ? "parent:" + bootstrap.ParentOrigin
+                    : "direct";
+                json = JsonConvert.SerializeObject(
+                    new
+                    {
+                        schema_version = catalog.SchemaVersion,
+                        remote_endpoint = remoteEndpoint,
+                        scenarios = catalog.Scenarios
+                    },
+                    Formatting.Indented);
                 error = string.Empty;
                 return true;
             }
