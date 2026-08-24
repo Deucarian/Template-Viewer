@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.1] - 2026-08-24
+
+### Added
+
+- Added a loopback-only iframe harness with a mock Unity viewer, dynamic
+  generated command controls, exact response matching, and a one-click
+  automated scenario run.
+- Added Unity editor catalog generation from the actual bootstrap command
+  composition, including product feature examples and safe non-automated
+  fallbacks for commands without representative payloads.
+
+### Changed
+
+- Replaced the handwritten browser action list with the generated catalog so
+  new Unity commands cannot silently disappear from local iframe testing.
+
 ## [0.2.0] - 2026-08-24
 
 ### Added

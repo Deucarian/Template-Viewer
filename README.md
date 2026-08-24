@@ -48,8 +48,9 @@ navigation, camera state, browser transport, and shell behavior stay shared.
    waits for `initialize_viewer`.
 3. For a WebGL build, open the Deucarian Build Pipeline Manager and choose
    **Sync Profiles** for the Web Viewer Template provider.
-4. Build **Development** and serve the self-contained `Browser~` harness at
-   `http://localhost:8080`.
+4. Run `npm start` in `Browser~` to test the generated commands immediately
+   against its local mock iframe, or build **Development** and pass that output
+   to the same localhost server for an end-to-end Unity WebGL run.
 
 The sample is credential-free and defaults to an embedded model. A host can
 instead supply an HTTP(S) or API-relative `model_url`. Replace
@@ -118,6 +119,29 @@ events. Authentication events contain lifecycle status only and never include
 the access token. Transport
 readiness only means listeners are installed; `viewer_ready` is emitted after
 model loading, identifier indexing, and navigation reference/origin capture.
+
+## Local iframe command harness
+
+The package includes a loopback-only HTTP server, mock Unity iframe, generated
+command controls, response log, and one-click automated scenario runner under
+`Browser~`. No deployment or backend is required. The mock exercises the same
+canonical `postMessage` host and exact-origin rules as a real build.
+
+The Unity editor builds the catalog from the actual command handlers registered
+by `WebViewerBootstrap`; it does not maintain a separate browser command-name
+list. Build Profile synchronization writes the development scene catalog to
+`Library/Deucarian/WebViewerHarness/commands.generated.json`. Product build
+providers use `WebViewerCommandHarnessCatalogGenerator.GenerateForScene()` in
+their existing synchronization action to generate the same catalog for their
+composed scene.
+
+Every registered command receives a manual browser action. Generic commands
+also provide safe payloads and expected outcomes for automation. Product
+features can override `CreateCommandHarnessScenarios()` to add their own valid
+examples; commands without an example remain discoverable but are not run
+automatically. Authentication examples never contain a real access token.
+
+See `Browser~/README.md` for the mock and real-build launch commands.
 
 ## State and camera guarantees
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Deucarian.CommandRouting;
+using Deucarian.TemplateViewerWeb.Commands;
 using UnityEngine;
 
 namespace Deucarian.TemplateViewerWeb
@@ -53,6 +54,16 @@ namespace Deucarian.TemplateViewerWeb
         public virtual IReadOnlyList<ICommandHandler<WebViewerApplication>>
             CreateCommandHandlers() =>
                 Array.Empty<ICommandHandler<WebViewerApplication>>();
+
+        /// <summary>
+        /// Supplies safe local-browser examples for commands contributed by
+        /// this feature. The harness catalog still includes every registered
+        /// command when no example is supplied, but leaves it out of the
+        /// automatic run until a representative payload is available.
+        /// </summary>
+        public virtual IReadOnlyList<WebViewerCommandHarnessScenario>
+            CreateCommandHarnessScenarios() =>
+                Array.Empty<WebViewerCommandHarnessScenario>();
 
         public virtual void Attach(WebViewerApplication application)
         {
