@@ -62,6 +62,7 @@ namespace Deucarian.TemplateViewerWeb
         private ViewerShellPresenter shellPresenter;
         private WebViewerShellStatusAdapter shellStatusAdapter;
         private DeucarianThemeProvider referenceThemeProvider;
+        private DeucarianViewerReferenceThemeRuntime referenceThemeRuntime;
         private IViewerAuthenticationSession authenticationSession;
         private IViewerAuthenticationAcquisitionProvider
             authenticationAcquisitionProvider;
@@ -89,6 +90,8 @@ namespace Deucarian.TemplateViewerWeb
             renderingInstaller?.ThemeProvider ??
             navigationInstaller?.ThemeProvider ??
             shellPresenter?.ThemeProvider;
+        public DeucarianViewerReferenceThemeRuntime ThemeRuntime =>
+            referenceThemeRuntime;
         public DeucarianTheme CurrentTheme =>
             ThemeProvider?.CurrentTheme ??
             ResolvedNavigationComposition.ThemeProfile.ResolveTheme(
@@ -515,6 +518,11 @@ namespace Deucarian.TemplateViewerWeb
             viewerCamera = renderingInstaller.Camera;
             keyLight = renderingInstaller.KeyLight;
             referenceThemeProvider = renderingInstaller.ThemeProvider;
+            referenceThemeRuntime =
+                DeucarianViewerReferenceThemeComposition.Install(
+                    gameObject,
+                    referenceThemeProvider);
+            referenceThemeProvider = referenceThemeRuntime.Provider;
             return renderingInstaller;
         }
 

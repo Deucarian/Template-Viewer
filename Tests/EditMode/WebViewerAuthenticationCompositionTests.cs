@@ -8,6 +8,7 @@ using Deucarian.Session.APIIntegration;
 using Deucarian.ViewerAuthentication;
 using NUnit.Framework;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Deucarian.TemplateViewerWeb.Tests
 {
@@ -297,7 +298,7 @@ namespace Deucarian.TemplateViewerWeb.Tests
                     bootstrap.ResolvedAuthenticationTokenEndpointProfile,
                     Is.SameAs(profile));
                 Assert.That(provider, Is.Not.Null);
-                Assert.That(provider.DisplayName, Is.EqualTo("Refresh Token"));
+                Assert.That(provider.DisplayName, Is.EqualTo("Get New Token"));
                 Assert.That(provider.InputDescriptors.Count, Is.EqualTo(2));
                 Assert.That(provider.InputDescriptors[1].IsSecret, Is.True);
             }
