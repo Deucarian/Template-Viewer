@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-08-24
+
+### Added
+
+- Registered the live Web Viewer command composition with Command Routing's
+  Unity Editor tester.
+- Reused the generated browser scenarios for individual Editor dispatch and
+  ordered automatic command sequences.
+
 ## [0.2.1] - 2026-08-24
 
 ### Added
