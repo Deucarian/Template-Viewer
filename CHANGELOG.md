@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2] - 2026-08-25
+
+### Added
+
+- Let product features nominate the command example that the shared Unity
+  live tester opens by default, without changing automated sequence order.
+
 ## [0.3.1] - 2026-08-25
 
 ### Fixed

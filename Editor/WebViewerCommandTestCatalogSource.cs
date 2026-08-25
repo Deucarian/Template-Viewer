@@ -66,6 +66,7 @@ namespace Deucarian.TemplateViewerWeb.Editor
                     {
                         schema_version = catalog.SchemaVersion,
                         remote_endpoint = remoteEndpoint,
+                        default_scenario_id = catalog.DefaultScenarioId,
                         scenarios = catalog.Scenarios
                     },
                     Formatting.Indented);

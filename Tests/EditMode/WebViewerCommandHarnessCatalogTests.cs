@@ -107,6 +107,7 @@ namespace Deucarian.TemplateViewerWeb.Tests
                 catalog.Scenarios.Single(value => value.Id == "set-focus");
             Assert.That(scenario.RunAutomatically, Is.True);
             Assert.That(scenario.Payload.Value<long>("revision"), Is.EqualTo(4));
+            Assert.That(catalog.DefaultScenarioId, Is.EqualTo("set-focus"));
             List<WebViewerCommandHarnessScenario> orderedScenarios =
                 catalog.Scenarios.ToList();
             Assert.That(
@@ -128,6 +129,30 @@ namespace Deucarian.TemplateViewerWeb.Tests
             Assert.That(catalog.Scenarios[0].CommandName, Is.EqualTo("inspect_state"));
             Assert.That(catalog.Scenarios[0].Label, Is.EqualTo("Inspect state"));
             Assert.That(catalog.Scenarios[0].RunAutomatically, Is.False);
+        }
+
+        [Test]
+        public void RejectsMultipleDefaultExamples()
+        {
+            var handlers = new[] { new HarnessCommandHandler("set_focus") };
+            var scenarios = new[]
+            {
+                new WebViewerCommandHarnessScenario(
+                    "first",
+                    "First",
+                    "set_focus",
+                    isDefault: true),
+                new WebViewerCommandHarnessScenario(
+                    "second",
+                    "Second",
+                    "set_focus",
+                    isDefault: true)
+            };
+
+            Assert.Throws<InvalidOperationException>(() =>
+                WebViewerCommandHarnessCatalogBuilder.Create(
+                    handlers,
+                    scenarios));
         }
 
         [Test]
@@ -173,7 +198,8 @@ namespace Deucarian.TemplateViewerWeb.Tests
                             "set-focus",
                             "Set focus",
                             "set_focus",
-                            new JObject { ["revision"] = 4 })
+                            new JObject { ["revision"] = 4 },
+                            isDefault: true)
                     };
 
             public bool TryCreate(

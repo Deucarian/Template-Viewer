@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "default_scenario_id": "",
   "scenarios": [
     {
       "id": "initialize",

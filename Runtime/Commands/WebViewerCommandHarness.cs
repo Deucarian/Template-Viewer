@@ -16,7 +16,8 @@ namespace Deucarian.TemplateViewerWeb.Commands
             string commandName,
             JObject payload = null,
             bool runAutomatically = true,
-            bool expectedSuccess = true)
+            bool expectedSuccess = true,
+            bool isDefault = false)
         {
             Id = Require(id, nameof(id));
             Label = Require(label, nameof(label));
@@ -26,6 +27,7 @@ namespace Deucarian.TemplateViewerWeb.Commands
                 : (JObject)payload.DeepClone();
             RunAutomatically = runAutomatically;
             ExpectedSuccess = expectedSuccess;
+            IsDefault = isDefault;
         }
 
         [JsonProperty("id")]
@@ -46,6 +48,9 @@ namespace Deucarian.TemplateViewerWeb.Commands
         [JsonProperty("expected_success")]
         public bool ExpectedSuccess { get; }
 
+        [JsonIgnore]
+        public bool IsDefault { get; }
+
         private static string Require(string value, string parameterName)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -63,14 +68,19 @@ namespace Deucarian.TemplateViewerWeb.Commands
     public sealed class WebViewerCommandHarnessCatalog
     {
         internal WebViewerCommandHarnessCatalog(
-            IReadOnlyList<WebViewerCommandHarnessScenario> scenarios)
+            IReadOnlyList<WebViewerCommandHarnessScenario> scenarios,
+            string defaultScenarioId)
         {
             Scenarios = scenarios ??
                 throw new ArgumentNullException(nameof(scenarios));
+            DefaultScenarioId = defaultScenarioId ?? string.Empty;
         }
 
         [JsonProperty("schema_version")]
         public int SchemaVersion => 1;
+
+        [JsonProperty("default_scenario_id")]
+        public string DefaultScenarioId { get; }
 
         [JsonProperty("scenarios")]
         public IReadOnlyList<WebViewerCommandHarnessScenario> Scenarios
@@ -116,6 +126,7 @@ namespace Deucarian.TemplateViewerWeb.Commands
 
             var scenarioIds = new HashSet<string>(StringComparer.Ordinal);
             var result = new List<WebViewerCommandHarnessScenario>();
+            string defaultScenarioId = string.Empty;
             if (scenarios != null)
             {
                 foreach (WebViewerCommandHarnessScenario scenario in scenarios)
@@ -140,6 +151,17 @@ namespace Deucarian.TemplateViewerWeb.Commands
                         throw new InvalidOperationException(
                             "Duplicate harness scenario id '" +
                             scenario.Id + "'.");
+                    }
+
+                    if (scenario.IsDefault)
+                    {
+                        if (defaultScenarioId.Length > 0)
+                        {
+                            throw new InvalidOperationException(
+                                "Only one harness scenario can be the default.");
+                        }
+
+                        defaultScenarioId = scenario.Id;
                     }
 
                     result.Add(scenario);
@@ -171,7 +193,9 @@ namespace Deucarian.TemplateViewerWeb.Commands
                     runAutomatically: false));
             }
 
-            return new WebViewerCommandHarnessCatalog(result);
+            return new WebViewerCommandHarnessCatalog(
+                result,
+                defaultScenarioId);
         }
 
         public static IReadOnlyList<WebViewerCommandHarnessScenario>
