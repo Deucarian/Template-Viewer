@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Deucarian.API.Configuration;
 using Deucarian.API.Core;
@@ -109,8 +110,13 @@ namespace Deucarian.TemplateViewerWeb
                 authenticationAcquisitionProvider;
         public CommandRoutePortBehaviour LocalCommandPort => localCommandPort;
 
-        private void Start()
+        private IEnumerator Start()
         {
+            // Editor-owned connection providers are registered when Play Mode
+            // is entered. Waiting one frame lets that registration finish
+            // before the viewer chooses its authentication and API context.
+            yield return null;
+
             try
             {
                 Compose();

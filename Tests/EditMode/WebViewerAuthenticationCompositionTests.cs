@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using Deucarian.API.Configuration;
@@ -14,6 +15,32 @@ namespace Deucarian.TemplateViewerWeb.Tests
 {
     public sealed class WebViewerAuthenticationCompositionTests
     {
+        [Test]
+        public void BootstrapDefersCompositionForRuntimeConnectionRegistration()
+        {
+            var root = new GameObject("Deferred viewer");
+            try
+            {
+                WebViewerBootstrap bootstrap =
+                    root.AddComponent<WebViewerBootstrap>();
+                MethodInfo start = typeof(WebViewerBootstrap).GetMethod(
+                    "Start",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(start, Is.Not.Null);
+                Assert.That(
+                    typeof(IEnumerator).IsAssignableFrom(start.ReturnType),
+                    Is.True);
+                var routine = (IEnumerator)start.Invoke(bootstrap, null);
+                Assert.That(routine.MoveNext(), Is.True);
+                Assert.That(bootstrap.Application, Is.Null);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
         [TestCase(ViewerRuntimeConnectionResolutionStatus.None, true)]
         [TestCase(ViewerRuntimeConnectionResolutionStatus.Resolved, false)]
         public void LocalAuthenticationIsUsedOnlyWhenNoConnectionProviderExists(
