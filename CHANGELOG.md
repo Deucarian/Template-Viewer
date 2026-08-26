@@ -15,6 +15,8 @@
 - Added transport-neutral command-harness scenario and catalog APIs.
 - Added platform-neutral EditMode coverage and the PlayMode visibility/camera
   invariant, using generic platform and navigation fakes where appropriate.
+- Added deterministic explicit same-scene feature composition while preserving
+  automatic feature discovery on the bootstrap GameObject.
 
 ### Changed
 

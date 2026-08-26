@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Deucarian.CommandRouting;
 using Deucarian.TemplateViewer.Commands;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Deucarian.TemplateViewer
 {
@@ -44,7 +45,8 @@ namespace Deucarian.TemplateViewer
 
     /// <summary>
     /// Scene-local extension point for product commands and product visibility.
-    /// Add derived components beside the platform-specific ViewerBootstrap.
+    /// Add derived components beside the platform-specific ViewerBootstrap or
+    /// assign same-scene components through its explicit feature list.
     /// </summary>
     public abstract class ViewerFeatureBehaviour : MonoBehaviour
     {
@@ -83,6 +85,42 @@ namespace Deucarian.TemplateViewer
 
     public static class ViewerFeatureComposition
     {
+        internal static ViewerFeatureBehaviour[] ResolveBehaviours(
+            ViewerBootstrap bootstrap,
+            IReadOnlyList<ViewerFeatureBehaviour> explicitFeatures)
+        {
+            if (bootstrap == null)
+            {
+                throw new ArgumentNullException(nameof(bootstrap));
+            }
+
+            ViewerFeatureBehaviour[] localFeatures =
+                bootstrap.GetComponents<ViewerFeatureBehaviour>();
+            int explicitCount = explicitFeatures?.Count ?? 0;
+            var resolved = new List<ViewerFeatureBehaviour>(
+                localFeatures.Length + explicitCount);
+            var instanceIds = new HashSet<int>();
+
+            for (int index = 0; index < localFeatures.Length; index++)
+            {
+                AddUnique(localFeatures[index], resolved, instanceIds);
+            }
+
+            Scene bootstrapScene = bootstrap.gameObject.scene;
+            for (int index = 0; index < explicitCount; index++)
+            {
+                ViewerFeatureBehaviour feature = explicitFeatures[index];
+                ValidateExplicitFeature(
+                    bootstrap,
+                    bootstrapScene,
+                    feature,
+                    index);
+                AddUnique(feature, resolved, instanceIds);
+            }
+
+            return resolved.ToArray();
+        }
+
         public static ICommandHandler<ViewerApplication>
             ResolveInitializationCommandHandler(
                 IReadOnlyList<ViewerFeatureBehaviour> features)
@@ -120,6 +158,68 @@ namespace Deucarian.TemplateViewer
 
             return result;
         }
+
+        private static void ValidateExplicitFeature(
+            ViewerBootstrap bootstrap,
+            Scene bootstrapScene,
+            ViewerFeatureBehaviour feature,
+            int index)
+        {
+            if (feature == null)
+            {
+                throw new InvalidOperationException(
+                    "Explicit viewer feature at index " + index +
+                    " on bootstrap '" + bootstrap.name +
+                    "' is null or destroyed. Assign a ViewerFeatureBehaviour " +
+                    "from the bootstrap scene or remove the entry.");
+            }
+
+            Scene featureScene = feature.gameObject.scene;
+            if (!featureScene.IsValid() || !featureScene.isLoaded)
+            {
+                throw new InvalidOperationException(
+                    "Explicit viewer feature '" + feature.name +
+                    "' at index " + index +
+                    " is not part of a valid loaded scene. Assign a scene " +
+                    "instance rather than a prefab asset.");
+            }
+
+            if (!bootstrapScene.IsValid() || !bootstrapScene.isLoaded)
+            {
+                throw new InvalidOperationException(
+                    "Viewer bootstrap '" + bootstrap.name +
+                    "' is not part of a valid loaded scene and cannot " +
+                    "compose explicit features.");
+            }
+
+            if (featureScene.handle != bootstrapScene.handle)
+            {
+                throw new InvalidOperationException(
+                    "Explicit viewer feature '" + feature.name +
+                    "' at index " + index + " belongs to scene '" +
+                    SceneLabel(featureScene) + "', but bootstrap '" +
+                    bootstrap.name + "' belongs to scene '" +
+                    SceneLabel(bootstrapScene) +
+                    "'. Move the feature into the bootstrap scene or " +
+                    "remove the reference.");
+            }
+        }
+
+        private static void AddUnique(
+            ViewerFeatureBehaviour feature,
+            ICollection<ViewerFeatureBehaviour> resolved,
+            ISet<int> instanceIds)
+        {
+            if (feature != null && instanceIds.Add(feature.GetInstanceID()))
+            {
+                resolved.Add(feature);
+            }
+        }
+
+        private static string SceneLabel(Scene scene) =>
+            string.IsNullOrWhiteSpace(scene.name)
+                ? "<unnamed>"
+                : scene.name;
 
         private static bool HandlesInitialization(
             ICommandHandler<ViewerApplication> handler)

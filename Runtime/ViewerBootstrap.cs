@@ -35,6 +35,14 @@ namespace Deucarian.TemplateViewer
         [SerializeField] private Transform loadedModelParent;
         [SerializeField] private ApiClientConfig apiClientConfig;
 
+        [Header("Features")]
+        [Tooltip("Optional same-scene product features located away from " +
+                 "this bootstrap. Features beside the bootstrap are always " +
+                 "discovered automatically.")]
+        [SerializeField] private ViewerFeatureBehaviour[]
+            explicitFeatureBehaviours =
+                Array.Empty<ViewerFeatureBehaviour>();
+
         [Header("Authentication")]
         [Tooltip("Optional credential-free token endpoint profile. When omitted, the shared Viewer Authentication Resources profile is used when present.")]
         [SerializeField] private SessionTokenEndpointProfile
@@ -88,6 +96,11 @@ namespace Deucarian.TemplateViewer
         public ViewerRenderingInstaller RenderingInstaller =>
             renderingInstaller;
         public ViewerShellPresenter ShellPresenter => shellPresenter;
+        public IReadOnlyList<ViewerFeatureBehaviour>
+            ResolvedFeatureBehaviours =>
+                ViewerFeatureComposition.ResolveBehaviours(
+                    this,
+                    explicitFeatureBehaviours);
         public DeucarianThemeProvider ThemeProvider =>
             referenceThemeProvider ??
             renderingInstaller?.ThemeProvider ??

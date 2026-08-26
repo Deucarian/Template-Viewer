@@ -16,6 +16,9 @@ namespace Deucarian.TemplateViewer
     {
         private void ComposeCore()
         {
+            featureBehaviours = ViewerFeatureComposition.ResolveBehaviours(
+                this,
+                explicitFeatureBehaviours);
             EnsureSceneDependencies();
             ViewerRenderingInstaller rendering = ComposeRendering();
             referenceNavigation = ComposeReferenceNavigation(rendering) ??
@@ -36,7 +39,6 @@ namespace Deucarian.TemplateViewer
                 effectiveOrigins);
             modelLoader.ProgressChanged += OnModelLoadingProgress;
 
-            featureBehaviours = GetComponents<ViewerFeatureBehaviour>();
             IViewerVisibilityFeatureFactory visibilityFactory =
                 ResolveVisibilityFeatureFactory(featureBehaviours);
             ICommandHandler<ViewerApplication> initializationHandler =

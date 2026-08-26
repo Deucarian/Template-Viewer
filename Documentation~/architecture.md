@@ -32,6 +32,11 @@ orbit-camera dependency.
 one host boundary. Default rendering/navigation/shell hooks install the shared
 reference viewer experience, while derived XR or specialist bootstraps may
 replace any of those presentation hooks without replacing the application.
+Features on the bootstrap remain implicit for compatibility. A serialized
+explicit list may add features from other GameObjects in the same scene;
+composition keeps local component order followed by explicit Inspector order,
+deduplicates references, and rejects invalid scene-lifetime relationships
+before presentation or authentication work begins.
 
 Command handlers validate and map canonical envelopes before delegating to the
 application. Product features may replace only the initialization handler and

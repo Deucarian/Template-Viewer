@@ -37,10 +37,20 @@ reusing loading, commands, authentication, lifecycle, and product features.
 `ViewerApplication` depends only on `IViewerEventPublisher` and
 `IViewerReferenceNavigation`; it never selects a platform or camera system.
 
-Add product behavior beside the platform bootstrap by deriving from
-`ViewerFeatureBehaviour`. A feature may contribute command handlers, replace
-the generic `initialize_viewer` handler, provide one domain visibility owner,
-and contribute command-harness scenarios.
+Add product behavior by deriving from `ViewerFeatureBehaviour`. Components on
+the bootstrap GameObject remain auto-discovered. The bootstrap's serialized
+explicit feature list can also reference components elsewhere in the same
+scene, which is useful when one product scene composes distinct desktop, Web,
+or XR presentation roots. Local features run first; explicit entries follow
+in Inspector order, and duplicate references are composed only once. Null,
+destroyed, prefab-asset, unloaded-scene, and cross-scene entries fail with a
+configuration error before presentation composition begins.
+`ResolvedFeatureBehaviours` exposes that same validated order to generic
+adapter tooling without giving it ownership of feature discovery.
+
+A feature may contribute command handlers, replace the generic
+`initialize_viewer` handler, provide one domain visibility owner, and
+contribute command-harness scenarios.
 
 ## Commands and events
 
