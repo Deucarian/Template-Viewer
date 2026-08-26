@@ -2,11 +2,21 @@
   "name": "Deucarian.TemplateViewer.Tests.EditMode",
   "rootNamespace": "Deucarian.TemplateViewer.Tests",
   "references": [
+    "Deucarian.API",
+    "Deucarian.CameraNavigation",
     "Deucarian.CommandRouting",
+    "Deucarian.ObjectLoading.APIIntegration",
+    "Deucarian.Session",
+    "Deucarian.Session.APIIntegration",
     "Deucarian.TemplateViewer",
+    "Deucarian.Theming",
+    "Deucarian.UI",
+    "Deucarian.UI.Editor",
     "Deucarian.ViewerAuthentication",
+    "Deucarian.ViewerNavigation",
     "Deucarian.ViewerRendering",
     "Deucarian.ViewerShell",
+    "UnityEngine.UIElementsModule",
     "Newtonsoft.Json"
   ],
   "includePlatforms": [

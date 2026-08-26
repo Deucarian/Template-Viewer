@@ -31,5 +31,5 @@ internals, product DTOs, or backend-specific model/version lookup.
 
 ## Validation
 
-Run the Package Registry validator, EditMode tests on Unity 6000, and
+Run the Package Registry validator, EditMode and PlayMode tests on Unity 6000, and
 `git diff --check`.

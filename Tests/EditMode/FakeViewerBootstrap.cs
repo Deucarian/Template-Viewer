@@ -140,6 +140,16 @@ namespace Deucarian.TemplateViewer.Tests
             null;
     }
 
+    /// <summary>
+    /// Concrete host used when tests need the production reference
+    /// rendering, navigation, shell, or authentication composition.
+    /// </summary>
+    public sealed class ReferenceViewerBootstrap : ViewerBootstrap
+    {
+        protected override IViewerPlatformAdapter CreatePlatformAdapter() =>
+            new FakeViewerPlatformAdapter();
+    }
+
     internal sealed class FakeViewerReferenceNavigation :
         IViewerReferenceNavigation
     {

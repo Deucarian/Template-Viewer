@@ -13,7 +13,8 @@
 - Added overridable rendering, navigation, and shell composition hooks on the
   abstract `ViewerBootstrap`.
 - Added transport-neutral command-harness scenario and catalog APIs.
-- Added focused EditMode coverage with a fake platform adapter.
+- Added platform-neutral EditMode coverage and the PlayMode visibility/camera
+  invariant, using generic platform and navigation fakes where appropriate.
 
 ### Changed
 

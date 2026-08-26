@@ -10,7 +10,8 @@
   "editorAssemblies": [],
   "sampleAssemblies": [],
   "testAssemblies": [
-    "Deucarian.TemplateViewer.Tests.EditMode"
+    "Deucarian.TemplateViewer.Tests.EditMode",
+    "Deucarian.TemplateViewer.Tests.PlayMode"
   ],
   "requiredDependencies": [
     "com.deucarian.api",

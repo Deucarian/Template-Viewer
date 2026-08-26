@@ -1,0 +1,21 @@
+{
+  "name": "Deucarian.TemplateViewer.Tests.PlayMode",
+  "rootNamespace": "Deucarian.TemplateViewer.Tests",
+  "references": [
+    "Deucarian.TemplateViewer"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}

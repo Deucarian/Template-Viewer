@@ -81,7 +81,7 @@ visibility baseline captured after model load.
 
 ## Validation
 
-Run the Package Registry validator, Unity EditMode tests, and
+Run the Package Registry validator, Unity EditMode and PlayMode tests, and
 `git diff --check`. Platform-adapter packages own their transport, build, and
 end-to-end tests.
 
