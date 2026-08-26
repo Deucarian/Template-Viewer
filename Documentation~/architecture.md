@@ -1,47 +1,52 @@
 # Architecture
 
-The template is an application example, not a reusable viewer-core package.
+The package is a reusable viewer core. Platform packages own transport and
+deployment concerns; product packages own domain behavior.
 
 ```text
-browser
-  -> WebGL ICommandTransport
-  -> Command Routing handlers
-  -> WebViewerApplication (lifecycle owner)
-       -> model descriptor strategy
-       -> Object Loading adapter
-       -> selection state owner
-            -> identifier index
-            -> visibility side-effect adapter
-       -> Viewer Navigation (initial reference registration only)
-            -> package-owned canonical toolbar and input surface
-            -> UI-owned canonical panel, semantic depth, and tooltip overlay
-            -> Theming-owned reference family/style resolution
-  -> sanitized events and Diagnostics
+Web / desktop / XR adapter
+  -> IViewerPlatformAdapter
+       -> IViewerEventPublisher + endpoint
+       -> command transport activation
+       -> IViewerLifecycleStatusSink
+  -> ViewerBootstrap
+       -> ViewerApplication
+            -> IViewerModelDescriptorResolver
+            -> IViewerModelLoader
+            -> IViewerReferenceNavigation
+            -> IViewerVisibilityFeature
+       -> Command Routing handlers
+       -> authentication + diagnostics
+       -> optional reference rendering/navigation/shell
+  -> product ViewerFeatureBehaviour components
 ```
 
-The composition root chooses concrete implementations explicitly. Command
-handlers validate/map and delegate. Model descriptor resolution is a pure
-strategy. Asset loading and `GameObject.SetActive` are narrow side-effect
-adapters. The application owns initialization/reinitialization/disposal; the
-selection state owner owns only monotonic selection state.
+## Ownership
 
-There is no service locator and no reflection in runtime code. The only
-discovery is Build Pipeline's documented editor-only provider discovery.
+`ViewerApplication` owns initialization, reinitialization, revision ordering,
+model lifecycle, selection delegation, and application events. It depends on
+small contracts and has no browser, desktop-window, XR-input, or concrete
+orbit-camera dependency.
 
-The template composes `ViewerNavigationReferenceComposition` as one unit. That
-unit owns the navigation settings, bounds strategy, reduced-motion policy,
-UI-input blocker, theme profile, and canonical toolbar presentation. Consumers
-may supply an intentional navigation-settings override, but must not copy the
-toolbar UXML/USS, colors, control-island styling, pointer handling, or movement-
-key guard into application code. Theme values are resolved by
-`com.deucarian.theming`, not duplicated in this package.
+`ViewerBootstrap` is the generic composition root. Its adapter factory selects
+one host boundary. Default rendering/navigation/shell hooks install the shared
+reference viewer experience, while derived XR or specialist bootstraps may
+replace any of those presentation hooks without replacing the application.
 
-`com.deucarian.ui` owns the cross-package surface contract. The navigation
-document requests `PrimaryControls`, the application-owned lifecycle status
-document requests `Status`, and transient tooltips request `Tooltip`. Runtime UI
-must use `DeucarianUIRuntime` for those roles instead of assigning raw sorting
-orders or introducing package-private PanelSettings assets. Feature packages
-continue to own their content and interactions; UI alone owns their relative
-screen-space composition. Keeping these surfaces in UI Toolkit also makes the
-tooltip panel's cross-document ordering deterministic instead of relying on
-numeric similarities between unrelated rendering systems.
+Command handlers validate and map canonical envelopes before delegating to the
+application. Product features may replace only the initialization handler and
+visibility owner, preventing multiple systems from competing over model state.
+
+The transport-neutral command harness is runtime schema, not a browser asset.
+Each adapter decides whether and how to display or execute its scenarios.
+
+## Dependency direction
+
+- Core never references adapter assemblies.
+- Adapters reference core and their platform transport.
+- Products reference core plus every adapter required by their build targets.
+- Platform selection occurs in a product/adapter bootstrap, never in
+  `ViewerApplication`.
+
+This permits one product to build for Web, desktop, and XR while retaining one
+model-loading, lifecycle, command, authentication, and selection implementation.

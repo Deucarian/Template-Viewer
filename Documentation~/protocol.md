@@ -1,22 +1,29 @@
-# Generic browser protocol
+# Viewer application protocol
 
-The transport wire format is owned by Command Routing WebGL Integration. This
-template adds only application command names and payload schemas.
+Command Routing owns the canonical envelope and each platform adapter owns its
+transport. This package owns only application command names and payloads.
 
-`initialize_viewer` accepts a complete model context rather than arbitrary
-patches. A missing `model_url` selects the embedded sample model. Applications
-should replace the descriptor resolver to turn their model context into an
-exact source/version.
+`initialize_viewer` accepts:
 
-`select_elements` is the example visibility command. IDs must be unique,
-stable, and registered by `WebViewerElement`. Unknown IDs fail without clearing
-or altering the last valid state. Each successful change emits its applied
-revision. There is no camera command in the selection path.
+- required monotonic `revision`;
+- optional `model_url` (HTTP(S) or API-relative);
+- optional `model_id`, `model_version`, `cache_version`, and `cache_hash`; and
+- optional `append_platform_query`.
 
-Iframe hosts must set
-`window.deucarianWebViewerConfig.parentOrigin` to their one exact origin before
-the Unity loader starts, then send to the viewer iframe's `contentWindow` using
-that same origin. Hosts queue application commands until the application's
-`viewer_ready` event and resend current context/state after a viewer
-recreation. Product readiness events may deliberately follow `viewer_ready`
-when product metadata is asynchronous.
+A missing `model_url` selects the composition's embedded model. Products that
+receive project/model/version identifiers should replace the initialization
+handler, resolve an exact model descriptor, and then delegate to
+`ViewerApplication`.
+
+`select_elements` accepts a newer `revision` and stable `element_ids`.
+`clear_selection` accepts a newer `revision` and restores the captured
+visibility baseline. Unknown IDs and stale revisions fail without altering the
+last valid state. Neither command changes navigation or camera state.
+
+`dispose_viewer` accepts a newer `revision`, cancels active work, unloads the
+model, and ends the lifecycle.
+
+Events are published through the selected platform adapter. `viewer_ready`
+means the application model is loaded, prepared, indexed, and registered with
+the selected navigation implementation. Product metadata readiness may use a
+later product-specific event when it is asynchronous.

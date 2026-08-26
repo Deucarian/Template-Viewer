@@ -1,263 +1,93 @@
-# Deucarian Web Viewer Template
+# Deucarian Viewer Template
 
-`com.deucarian.template.viewer.web` is a ready-to-run generic starting point
-for browser-hosted Unity viewers. It uses the reusable Deucarian stack instead
-of copying a viewer application:
+`com.deucarian.template.viewer` is the platform-neutral core for Deucarian
+viewers. It owns the reusable application lifecycle, model loading and
+presentation, selection, commands, authentication, diagnostics, rendering,
+navigation, and shell composition.
 
-- Viewer Navigation supplies Orbit/Fly, Top Down, Return to Origin, the polished
-  shared-reference icon toolbar and interactions, pointer/input coordination,
-  browser reduced-motion handling, and an optional six-face view cube that is
-  off by default. With no intentional
-  override, it loads the package's complete reference navigation composition,
-  including its canonical dark Frosted Glass theme and theme provider. The
-  toolbar's UI Toolkit assets, control-island chrome, element tree, pointer
-  behavior, and movement-key suppression are package-owned; template consumers
-  must not recreate or restyle that presentation locally;
-- UI supplies the canonical runtime PanelSettings, semantic surface roles, and
-  shared topmost tooltip overlay used by every in-viewer UI package;
-- Viewer Rendering supplies the exact reference camera, key light, URP,
-  post-processing, reflection, themed environment, display-settings state, and
-  semantic Full quality baseline independently of consumer quality indices;
-- Viewer Shell supplies the complete Report-donor generic status/toast,
-  information and display-settings menus, responsive chrome, input boundaries,
-  menu coordination, and tooltips. The template contains only a lifecycle
-  adapter and no local shell presentation;
-- Command Routing and its WebGL Integration supply canonical envelopes,
-  direct-page and secure iframe transport, ready handshake, and cleanup;
-- API, Object Loading, and their integration load AssetBundle content;
-- Viewer Authentication composes Session with the live API auth provider,
-  standard update/refresh/clear commands, sanitized status, and the shared
-  development authentication menu; Session API Integration supplies the
-  credential-free endpoint profile and response mapping used by that menu;
-- Diagnostics reports sanitized lifecycle, revision, and element counts; and
-- Build Pipeline owns the shared policy while this template supplies the
-  project-specific development/production provider and profiles; and
-- WebGL Template supplies the browser page, loading/ready/failure states, and
-  lifecycle bridge shared by browser-hosted viewers.
+Browser, desktop, and XR integrations belong in small adapter packages. A
+product derives from `ViewerBootstrap` and returns exactly one
+`IViewerPlatformAdapter` for the active build. The adapter supplies:
 
-Product packages may add `WebViewerFeatureBehaviour` components beside the
-bootstrap. They can contribute commands, one replaceable initialization
-handler, and one replaceable visibility owner.
-When a product owns visibility, the generic `select_elements` controller is not
-created, so two systems never compete over model active states. Model loading,
-navigation, camera state, browser transport, and shell behavior stay shared.
+- an event publisher and endpoint;
+- command-transport activation; and
+- a lifecycle/progress status sink.
 
-## Quick start
+The core has no browser scripts, iframe policy, WebGL plug-in, build-profile
+provider, or runnable Web sample. Those assets live with the Web adapter, so a
+single viewer product may reference Web, desktop, and XR adapters without
+duplicating its application logic.
 
-1. Import the **Web Viewer** sample and open `Scenes/WebViewer.unity`.
-2. Enter Play Mode. The bootstrap creates an embedded three-element model and
-   waits for `initialize_viewer`.
-3. Open `Tools > Deucarian > Communication > Command Routing`, choose
-   **Live Tester**, and send a generated scenario or run the automatic sequence.
-4. For a WebGL build, open the Deucarian Build Pipeline Manager and choose
-   **Sync Profiles** for the Web Viewer Template provider.
-5. Run `npm start` in `Browser~` to test the generated commands immediately
-   against its local mock iframe, or build **Development** and pass that output
-   to the same localhost server for an end-to-end Unity WebGL run.
+## Composition
 
-The sample is credential-free and defaults to an embedded model. A host can
-instead supply an HTTP(S) or API-relative `model_url`. Replace
-`IWebViewerModelDescriptorResolver` in the composition root when an application
-must resolve a project/model/version context. Do not put backend DTOs in this
-template.
+Create a platform bootstrap by deriving from `ViewerBootstrap`:
 
-An optional connection package can register one vendor-neutral runtime
-connection through Viewer Authentication. When exactly one provider resolves,
-the template reuses its stable authentication target, session, API client,
-configured API base URL, and authenticated model origins. The template does not
-create a second target or copy its token. With no provider it retains the
-generic, template-owned authentication composition below. A failed provider or
-multiple active providers stop initialization; the template never silently
-falls back to a different session after a connection was requested.
-
-For an authenticated development session, open **Tools > Deucarian > Viewer >
-Authentication**. Paste/replace input is masked and cleared immediately. An
-optional remembered token is stored only in this Unity project's local
-`UserSettings`, not in the template package or a versioned ScriptableObject.
-Assign a credential-free `SessionTokenEndpointProfile` on `WebViewerBootstrap`,
-or place one at Resources path
-`Deucarian/ViewerAuthenticationTokenEndpointProfile`. The shared window then
-renders its transient fields and offers **Refresh Token**, which reacquires a
-token through the configured endpoint. Credentials remain window-local and the
-profile stores only request/response shape. A true automatic refresh service is
-still a separate optional capability.
-
-## Commands
-
-All commands use the canonical Command Routing envelope:
-
-```json
+```csharp
+public sealed class DesktopViewerBootstrap : ViewerBootstrap
 {
-  "protocol_version": 1,
-  "command_id": "host-42",
-  "command": "initialize_viewer",
-  "payload": { "revision": 1 },
-  "metadata": { "source": "host" }
+    protected override IViewerPlatformAdapter CreatePlatformAdapter() =>
+        new DesktopViewerPlatformAdapter();
 }
 ```
 
-The composition root also injects its runtime into Command Routing's
-scene-owned local ingress. Optional editor connection packages can therefore
-send this exact envelope during Play Mode without depending on the template's
-application types or bypassing command handlers.
+The default composition installs the shared reference rendering, orbit-camera
+navigation, and viewer shell. Platforms such as XR may override
+`ComposeRendering`, `ComposeReferenceNavigation`, or `ComposeShell` while
+reusing loading, commands, authentication, lifecycle, and product features.
+`ViewerApplication` depends only on `IViewerEventPublisher` and
+`IViewerReferenceNavigation`; it never selects a platform or camera system.
 
-Supported generic commands:
+Add product behavior beside the platform bootstrap by deriving from
+`ViewerFeatureBehaviour`. A feature may contribute command handlers, replace
+the generic `initialize_viewer` handler, provide one domain visibility owner,
+and contribute command-harness scenarios.
 
-- `initialize_viewer`: `revision`, optional `model_url`, `model_id`,
-  `model_version`, `cache_version`, and `cache_hash`;
-- `select_elements`: `revision` and one or more stable `element_ids`;
-- `clear_selection`: `revision`, restoring the captured visibility baseline;
-- `dispose_viewer`: `revision`, unloading the model and cancelling work.
-- `update_access_token`: `access_token` and optional UTC expiry, replacing the
-  live viewer session without reconstructing API clients;
-- `updateaccesstoken`: compatibility alias for existing viewer hosts;
-- `refresh_access_token`: asks the configured Session refresh adapter for a
-  new token;
-- `clear_access_token`: clears the active viewer session.
+## Commands and events
 
-The browser receives `viewer_loading`, application-level `viewer_ready`,
-`viewer_failed`, `selection_applied`, `viewer_disposed`, and sanitized
-`access_token_updated`, `access_token_refreshed`, and `access_token_cleared`
-events. Authentication events contain lifecycle status only and never include
-the access token. Transport
-readiness only means listeners are installed; `viewer_ready` is emitted after
-model loading, identifier indexing, and navigation reference/origin capture.
+Wire names remain stable across adapters. Generic commands are:
 
-## Local iframe command harness
+- `initialize_viewer`
+- `select_elements`
+- `clear_selection`
+- `dispose_viewer`
+- `update_access_token` and compatibility alias `updateaccesstoken`
+- `refresh_access_token`
+- `clear_access_token`
 
-The package includes a loopback-only HTTP server, mock Unity iframe, generated
-command controls, response log, and one-click automated scenario runner under
-`Browser~`. No deployment or backend is required. The mock exercises the same
-canonical `postMessage` host and exact-origin rules as a real build.
+Generic application events are `viewer_loading`, `viewer_ready`,
+`viewer_failed`, `selection_applied`, `viewer_disposed`, and the sanitized
+authentication lifecycle events. `viewer_ready` is emitted only after loading,
+presentation, element indexing, and reference registration complete.
 
-The Unity editor builds the catalog from the actual command handlers registered
-by `WebViewerBootstrap`; it does not maintain a separate browser command-name
-list. Build Profile synchronization writes the development scene catalog to
-`Library/Deucarian/WebViewerHarness/commands.generated.json`. Product build
-providers use `WebViewerCommandHarnessCatalogGenerator.GenerateForScene()` in
-their existing synchronization action to generate the same catalog for their
-composed scene.
+`ViewerCommandHarnessScenario`, `ViewerCommandHarnessCatalog`, and
+`ViewerCommandHarnessCatalogBuilder` describe transport-neutral command
+examples. An adapter may render that catalog in a browser page, desktop tool,
+or another development surface.
 
-Every registered command receives a manual browser action. Generic commands
-also provide safe payloads and expected outcomes for automation. Product
-features can override `CreateCommandHarnessScenarios()` to add their own valid
-examples; commands without an example remain discoverable but are not run
-automatically. Authentication examples never contain a real access token.
+## Model and camera behavior
 
-The same live scene composition registers as a Command Routing test catalog in
-the Unity Editor. The shared Live Tester sends those scenarios through the
-active viewer's direct-page or parent-iframe endpoint and through the
-initialized `CommandRoutePortBehaviour`, so Editor testing exercises the real
-application handlers rather than a second simulation path.
+The default `DirectViewerModelDescriptorResolver` accepts an optional HTTP(S)
+or API-relative `model_url`. Products may replace the initialization handler to
+resolve project/model/version identifiers before delegating to the application.
 
-See `Browser~/README.md` for the mock and real-build launch commands.
+`IViewerReferenceNavigation` is the only navigation dependency required by the
+application. The default `ViewerNavigationReferenceAdapter` registers and
+frames a model with shared Viewer Navigation. XR can provide an origin-aware
+implementation and choose not to apply orbit-camera framing.
 
-## State and camera guarantees
-
-`WebViewerSelectionStateOwner` is authoritative for generic selection. Newer
-revisions supersede older state; stale revisions and unknown IDs preserve the
-last valid visibility plan. Clearing restores the baseline captured after load.
-
-Selection updates only call `WebViewerVisibilityController`. They never call
-Viewer Navigation, so camera transform, projection, pivot, navigation mode,
-and current user position remain unchanged. Initial model registration frames
-once and captures Return to Origin after model placement.
-
-`WebViewerBootstrap.ResolvedNavigationComposition`,
-`ResolvedRenderingComposition`, and `ResolvedShellProfile` expose the exact
-shared compositions used at runtime. `NavigationInstaller`,
-`RenderingInstaller`, and `ShellPresenter` all expose the same authoritative
-theme provider. Supplying custom navigation settings only replaces the preset;
-input, bounds, animation, rendering, shell, and theme policies stay shared.
-The toolbar resolves colors, visual style, and theme mode through
-`com.deucarian.theming`; the template does not contain a parallel theme palette.
-Its public element names come from `ViewerNavigationToolbarPresenter`, so host
-automation can locate controls without taking ownership of their hierarchy or
-presentation.
-
-## Shared UI layering
-
-`com.deucarian.ui` is the single authority for in-viewer UI depth. Viewer
-Navigation requests `PrimaryControls`, Viewer Shell requests `Status` and
-`Menu`, and runtime tooltips use `Tooltip`. Consumers compose those
-roles through `DeucarianUIRuntime`; they do not assign numeric sorting orders,
-create private PanelSettings assets, or implement their own tooltip overlays.
-
-All in-viewer surfaces use the canonical UI Toolkit panel family, so the
-topmost tooltip guarantee is enforced by one compositing system. Feature
-packages still own their content and behavior, while UI owns how their surfaces
-are composed relative to one another.
-
-## Browser security
-
-Direct-page mode uses same-page events. Iframe mode requires an exact HTTP(S)
-allowed and target origin, validates the parent source window, and never sends
-to `*`. Production validation additionally requires a non-loopback HTTPS origin.
-The host owns the Unity instance and disposes its listeners on teardown.
-
-A WebGL build automatically selects secure parent-iframe mode when it is
-embedded. The deployment page must set the exact backoffice origin before the
-Unity loader starts:
-
-```html
-<script>
-  window.deucarianWebViewerConfig = {
-    parentOrigin: "https://backoffice.example.com"
-  };
-</script>
-```
-
-Top-level localhost builds remain in direct-page mode. An embedded build with
-missing, wildcard, path-bearing, credential-bearing, or otherwise invalid
-configuration fails closed and does not install a browser command route.
-
-Model downloads use Object Loading API Integration's shared trusted-origin
-policy. API-relative URLs are first resolved to a canonical absolute URL against
-the active connection's API base. Absolute URLs must match that base origin or
-an exact additional origin explicitly allowlisted on `WebViewerBootstrap`.
-Trusted destinations use the optional live session provider. Untrusted absolute
-HTTP(S) URLs remain supported as explicitly anonymous public downloads, including
-when no API base is configured. Invalid URLs are rejected. Origin matching
-includes the exact scheme, host, and effective port, and origin entries
-containing paths, user information, queries, fragments, or wildcards are
-invalid.
-
-An optional runtime connection contributes its own validated API base and exact
-authenticated origins to the shared policy. Connection packages pass URLs and
-version metadata only; bearer tokens never belong in `model_url`, command
-payloads, query strings, or diagnostics.
-
-## Build profiles
-
-`WebViewerBuildManagerProvider` is discovered by Deucarian Build Pipeline. Its
-explicit **Sync Profiles** action creates project-owned scenes and WebGL Build
-Profile assets under `Assets/Deucarian/WebViewer` and applies the shared dev or
-production policy. Production validation rejects local/insecure iframe origins;
-Build Pipeline excludes development diagnostics and development-context files.
-
-## Extension points
-
-- implement `IWebViewerModelDescriptorResolver` for application API/model
-  version resolution;
-- override `WebViewerFeatureBehaviour.InitializationCommandHandler` when a
-  product has a typed project/model initialization contract;
-- call `WebViewerApplication.PublishEventAsync` for product lifecycle events
-  that must use the same secured browser route;
-- implement `IWebViewerModelLoader` only when Object Loading cannot represent
-  the source;
-- replace the example `WebViewerElement` index/controller with a domain-owned
-  visibility capability;
-- add application commands through Command Routing handlers, not the transport.
-- define a credential-free Session API token endpoint profile when the shared
-  Authentication menu should offer endpoint-backed Refresh Token.
-- install an optional runtime connection provider when a backend integration
-  should supply one stable authentication session, API client, and trusted
-  model-download origins without product-local bootstrap code.
+Selection is revisioned and changes only visibility. It never mutates camera,
+navigation mode, pivot, projection, or user position. Clearing restores the
+visibility baseline captured after model load.
 
 ## Validation
 
-Run the Package Registry validator, Unity EditMode/PlayMode tests, browser tests
-with `npm test` in `Browser~`, and `git diff --check`.
+Run the Package Registry validator, Unity EditMode tests, and
+`git diff --check`. Platform-adapter packages own their transport, build, and
+end-to-end tests.
+
+See [Documentation~/architecture.md](Documentation~/architecture.md) for the
+dependency boundaries and [Documentation~/protocol.md](Documentation~/protocol.md)
+for the application payload contract.
 
 ## License
 

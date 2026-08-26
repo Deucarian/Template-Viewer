@@ -1,28 +1,21 @@
 {
-  "packageId": "com.deucarian.template.viewer.web",
-  "displayName": "Deucarian Web Viewer Template",
-  "samplePolicy": "playable-scene",
+  "packageId": "com.deucarian.template.viewer",
+  "displayName": "Deucarian Viewer Template",
+  "samplePolicy": "tool",
   "operationalPackage": true,
   "ownedCapabilities": [],
   "runtimeAssemblies": [
-    "Deucarian.TemplateViewerWeb"
+    "Deucarian.TemplateViewer"
   ],
-  "editorAssemblies": [
-    "Deucarian.TemplateViewerWeb.Editor"
-  ],
-  "sampleAssemblies": [
-    "Deucarian.TemplateViewerWeb.Samples.WebViewer"
-  ],
+  "editorAssemblies": [],
+  "sampleAssemblies": [],
   "testAssemblies": [
-    "Deucarian.TemplateViewerWeb.Tests.EditMode",
-    "Deucarian.TemplateViewerWeb.Tests.PlayMode"
+    "Deucarian.TemplateViewer.Tests.EditMode"
   ],
   "requiredDependencies": [
     "com.deucarian.api",
-    "com.deucarian.build-pipeline",
     "com.deucarian.camera-navigation",
     "com.deucarian.command-routing",
-    "com.deucarian.command-routing.webgl-integration",
     "com.deucarian.diagnostics",
     "com.deucarian.logging",
     "com.deucarian.object-loading",
@@ -35,13 +28,10 @@
     "com.deucarian.viewer-rendering",
     "com.deucarian.viewer-shell",
     "com.deucarian.viewer-authentication",
-    "com.deucarian.web-viewer-suite",
-    "com.deucarian.webgl-template",
     "com.unity.nuget.newtonsoft-json",
     "com.unity.modules.uielements"
   ],
   "optionalVersionDefinedDependencies": [],
   "allowedDirectDebugCalls": [],
-  "allowedDirectUnityObjectLifetimeCalls": [],
-  "expectedSamplesRoot": "Samples~"
+  "allowedDirectUnityObjectLifetimeCalls": []
 }

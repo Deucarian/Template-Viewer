@@ -1,20 +1,20 @@
-# Deucarian Web Viewer Template Agent Notes
+# Deucarian Viewer Template Agent Notes
 
-Package ID: `com.deucarian.template.viewer.web`
+Package ID: `com.deucarian.template.viewer`
 
 Follow Package Registry architecture, dependency, distribution, and release
 policies.
 
 ## Ownership
 
-This concrete template owns a generic viewer application composition root,
-generic example commands and visibility state, an Object Loading/API adapter,
-sanitized diagnostics, browser harness, sample scene, and project-owned WebGL
-Build Profile provider.
+This template owns the platform-neutral viewer application, lifecycle and
+wire contracts, generic commands and visibility state, Object Loading/API
+adapter, shared rendering/navigation/shell/authentication composition,
+sanitized diagnostics, and the platform-adapter boundary.
 
-It must not own camera math, raw input, pointer capture, browser transport,
-generic command routing, AssetBundle loading internals, Report/Activity DTOs,
-or backend-specific model/version lookup.
+It must not own camera math, raw input, pointer capture, browser, desktop, or
+XR transport implementations, generic command routing, AssetBundle loading
+internals, product DTOs, or backend-specific model/version lookup.
 
 ## Invariants
 
@@ -23,12 +23,13 @@ or backend-specific model/version lookup.
   index, navigation reference, and command host are ready.
 - Revisions are monotonic. Invalid or stale selection keeps the last valid state.
 - Reinitialization and disposal release prior loads and listeners idempotently.
-- Iframe configuration uses an exact allowed/target origin.
+- Exactly one platform adapter owns the event route, command transport, and
+  external lifecycle-status sink for one composition.
 - No direct `UnityEngine.Debug`; use Deucarian Logging.
 - Operational diagnostics contain no source URLs, tokens, or command payloads.
-- Editor integration uses Build Pipeline's shared manager; do not add local chrome.
+- Platform build profiles and host-specific UI belong to adapter packages.
 
 ## Validation
 
-Run the Package Registry validator, EditMode and PlayMode tests on Unity 6000,
-the browser harness contract tests, and `git diff --check`.
+Run the Package Registry validator, EditMode tests on Unity 6000, and
+`git diff --check`.

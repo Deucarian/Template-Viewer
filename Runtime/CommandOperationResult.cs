@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Deucarian.TemplateViewerWeb
+namespace Deucarian.TemplateViewer
 {
     public readonly struct CommandOperationResult
     {
