@@ -76,6 +76,7 @@ namespace Deucarian.TemplateViewer
         private IDisposable authenticationTargetRegistration;
         private IDisposable runtimeConnection;
         private IViewerPlatformAdapter platformAdapter;
+        private string compositionStage = "starting viewer composition";
         private ViewerFeatureBehaviour[] featureBehaviours =
             Array.Empty<ViewerFeatureBehaviour>();
 
@@ -142,15 +143,17 @@ namespace Deucarian.TemplateViewer
             }
             catch (Exception exception)
             {
+                string diagnostic =
+                    ViewerCompositionDiagnostic.Format(
+                        compositionStage,
+                        exception);
                 Log.Error(
-                    "Viewer composition failed with " +
-                    exception.GetType().Name +
-                    ". Details were omitted.",
+                    diagnostic,
                     this);
                 shellPresenter?.ApplyStatus(
                     ViewerShellStatusSnapshot.Error(
                         "Viewer configuration failed",
-                        "The viewer composition did not complete."));
+                        diagnostic));
             }
         }
 
@@ -173,8 +176,11 @@ namespace Deucarian.TemplateViewer
 
             try
             {
+                compositionStage = "creating the platform adapter";
                 platformAdapter = CreatePlatformAdapter();
+                compositionStage = "validating the platform adapter";
                 ViewerPlatformAdapterValidation.Validate(platformAdapter);
+                compositionStage = "validating the platform configuration";
                 if (!TryValidatePlatformConfiguration(
                         platformAdapter,
                         false,
@@ -187,6 +193,7 @@ namespace Deucarian.TemplateViewer
                 }
 
                 ComposeCore();
+                compositionStage = "completed viewer composition";
             }
             catch
             {
