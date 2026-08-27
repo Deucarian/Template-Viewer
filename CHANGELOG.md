@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0] - 2026-08-27
+
+### Breaking
+
+- Replaced Viewer Authentication 0.5.1 with generic Authentication 1.0.0 and
+  its optional viewer-integration assembly.
+- Removed the package-resource token-endpoint fallback; standalone
+  authentication acquisition now requires an explicitly assigned endpoint
+  profile.
+- Updated the coordinated API, Session API Integration, navigation,
+  diagnostics, logging, and command-routing dependencies.
+
 ## [0.1.1] - 2026-08-27
 
 ### Added

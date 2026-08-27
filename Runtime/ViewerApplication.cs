@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.TemplateViewer.Selection;
-using Deucarian.ViewerAuthentication;
+using Deucarian.Authentication;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -11,14 +11,14 @@ namespace Deucarian.TemplateViewer
 {
     public sealed partial class ViewerApplication :
         IDisposable,
-        IViewerAuthenticationHost
+        IAuthenticationHost
     {
         private readonly IViewerModelDescriptorResolver descriptorResolver;
         private readonly IViewerModelLoader modelLoader;
         private readonly IViewerReferenceNavigation navigation;
         private readonly IViewerEventPublisher eventPublisher;
         private readonly GameObject embeddedModel;
-        private readonly IViewerAuthenticationSession authenticationSession;
+        private readonly IAuthenticationSession authenticationSession;
         private readonly IViewerVisibilityFeatureFactory
             visibilityFeatureFactory;
         private readonly IViewerModelReadinessFeature modelReadinessFeature;
@@ -35,7 +35,7 @@ namespace Deucarian.TemplateViewer
             IViewerReferenceNavigation referenceNavigation,
             IViewerEventPublisher publisher,
             GameObject embeddedReferenceModel = null,
-            IViewerAuthenticationSession viewerAuthentication = null,
+            IAuthenticationSession viewerAuthentication = null,
             IViewerVisibilityFeatureFactory customVisibilityFeatureFactory = null,
             IViewerModelReadinessFeature customModelReadinessFeature = null)
         {
@@ -47,7 +47,7 @@ namespace Deucarian.TemplateViewer
             eventPublisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
             embeddedModel = embeddedReferenceModel;
             authenticationSession = viewerAuthentication ??
-                new ViewerAuthenticationSession();
+                new AuthenticationSession();
             visibilityFeatureFactory = customVisibilityFeatureFactory;
             modelReadinessFeature = customModelReadinessFeature;
             Lifecycle = ViewerLifecycleState.Created;
@@ -69,7 +69,7 @@ namespace Deucarian.TemplateViewer
         public int SelectedElementCount =>
             visibilityFeature?.SelectedElementCount ?? 0;
         public ViewerModelContext CurrentModel { get; private set; }
-        public IViewerAuthenticationSession AuthenticationSession =>
+        public IAuthenticationSession AuthenticationSession =>
             authenticationSession;
 
         /// <summary>
