@@ -10,7 +10,7 @@ using Deucarian.TemplateViewer.Commands;
 using Deucarian.TemplateViewer.Diagnostics;
 using Deucarian.TemplateViewer.Loading;
 using Deucarian.Theming;
-using Deucarian.ViewerAuthentication;
+using Deucarian.Authentication;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerRendering;
 using Deucarian.ViewerShell;
@@ -26,6 +26,8 @@ namespace Deucarian.TemplateViewer
     public abstract partial class ViewerBootstrap : MonoBehaviour
     {
         private static readonly DLog Log = DLog.For("TemplateViewer");
+        private const string DefaultAuthenticationProfileResourcePath =
+            "Deucarian/ViewerAuthenticationTokenEndpointProfile";
 
         [Header("Viewer")]
         [SerializeField] private Camera viewerCamera;
@@ -70,8 +72,8 @@ namespace Deucarian.TemplateViewer
         private ViewerShellStatusAdapter shellStatusAdapter;
         private DeucarianThemeProvider referenceThemeProvider;
         private DeucarianViewerReferenceThemeRuntime referenceThemeRuntime;
-        private IViewerAuthenticationSession authenticationSession;
-        private IViewerAuthenticationAcquisitionProvider
+        private IAuthenticationSession authenticationSession;
+        private IAuthenticationAcquisitionProvider
             authenticationAcquisitionProvider;
         private IDisposable authenticationTargetRegistration;
         private IDisposable runtimeConnection;
@@ -116,9 +118,8 @@ namespace Deucarian.TemplateViewer
             ResolvedAuthenticationTokenEndpointProfile =>
                 authenticationTokenEndpointProfile ??
                 Resources.Load<SessionTokenEndpointProfile>(
-                    ViewerAuthenticationEndpointProviderFactory
-                        .DefaultProfileResourcePath);
-        public IViewerAuthenticationAcquisitionProvider
+                    DefaultAuthenticationProfileResourcePath);
+        public IAuthenticationAcquisitionProvider
             AuthenticationAcquisitionProvider =>
                 authenticationAcquisitionProvider;
         public CommandRoutePortBehaviour LocalCommandPort => localCommandPort;

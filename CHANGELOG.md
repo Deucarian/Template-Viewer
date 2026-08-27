@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0] - 2026-08-27
+
+### Changed
+
+- Migrated the viewer core to the generic Authentication package and its
+  optional viewer-integration assembly.
+- Preserved the existing credential-free endpoint profile fallback while
+  removing the legacy Viewer Authentication package dependency.
+
 ## [0.1.1] - 2026-08-27
 
 ### Added
