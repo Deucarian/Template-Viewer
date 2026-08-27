@@ -21,6 +21,7 @@ namespace Deucarian.TemplateViewer
         private readonly IViewerAuthenticationSession authenticationSession;
         private readonly IViewerVisibilityFeatureFactory
             visibilityFeatureFactory;
+        private readonly IViewerModelReadinessFeature modelReadinessFeature;
         private CancellationTokenSource initializationCancellation;
         private IViewerVisibilityFeature visibilityFeature;
         private ViewerSelectionStateOwner selection;
@@ -35,7 +36,8 @@ namespace Deucarian.TemplateViewer
             IViewerEventPublisher publisher,
             GameObject embeddedReferenceModel = null,
             IViewerAuthenticationSession viewerAuthentication = null,
-            IViewerVisibilityFeatureFactory customVisibilityFeatureFactory = null)
+            IViewerVisibilityFeatureFactory customVisibilityFeatureFactory = null,
+            IViewerModelReadinessFeature customModelReadinessFeature = null)
         {
             descriptorResolver = resolver ??
                 throw new ArgumentNullException(nameof(resolver));
@@ -47,6 +49,7 @@ namespace Deucarian.TemplateViewer
             authenticationSession = viewerAuthentication ??
                 new ViewerAuthenticationSession();
             visibilityFeatureFactory = customVisibilityFeatureFactory;
+            modelReadinessFeature = customModelReadinessFeature;
             Lifecycle = ViewerLifecycleState.Created;
             if (embeddedModel != null)
             {
@@ -238,6 +241,30 @@ namespace Deucarian.TemplateViewer
                 if (!IsInitializationCurrent(generation, token))
                 {
                     return SupersededInitialization();
+                }
+
+                if (modelReadinessFeature != null)
+                {
+                    ViewerModelReadinessResult readiness =
+                        await modelReadinessFeature.PrepareAsync(
+                            modelContext,
+                            remoteEndpoint,
+                            token);
+                    if (!IsInitializationCurrent(generation, token))
+                    {
+                        return SupersededInitialization();
+                    }
+
+                    if (readiness == null || !readiness.Succeeded)
+                    {
+                        return await FailInitializationAsync(
+                            request.Revision,
+                            readiness?.Message ??
+                                "Product model preparation returned no result.",
+                            remoteEndpoint,
+                            generation,
+                            token);
+                    }
                 }
 
                 SetLifecycle(ViewerLifecycleState.Ready);

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -175,6 +177,44 @@ namespace Deucarian.TemplateViewer.Tests
             Assert.That(adapter.DisposeCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public void MultipleModelReadinessOwnersAreRejected()
+        {
+            RecordingViewerFeature first = CreateFeature("First readiness");
+            RecordingViewerFeature second = CreateFeature("Second readiness");
+            first.ReadinessFeature = new SuccessfulReadinessFeature();
+            second.ReadinessFeature = new SuccessfulReadinessFeature();
+
+            InvalidOperationException exception =
+                Assert.Throws<InvalidOperationException>(() =>
+                    ViewerFeatureComposition.ResolveModelReadinessFeature(
+                        new ViewerFeatureBehaviour[] { first, second }));
+
+            Assert.That(exception.Message, Does.Contain("model readiness"));
+        }
+
+        [Test]
+        public async Task ComposedFeatureObservesCompletedCommands()
+        {
+            GameObject root = CreateObject("Viewer command observation");
+            FakeViewerBootstrap bootstrap =
+                root.AddComponent<FakeViewerBootstrap>();
+            RecordingViewerFeature feature =
+                root.AddComponent<RecordingViewerFeature>();
+            bootstrap.Adapter = new FakeViewerPlatformAdapter();
+            bootstrap.ComposeNow();
+
+            await bootstrap.LocalCommandPort.RouteMessageAsync(
+                "{\"command\":\"unsupported_product_command\"}",
+                "test",
+                "test://viewer",
+                CancellationToken.None);
+
+            Assert.That(feature.CommandCompletedCount, Is.EqualTo(1));
+            Assert.That(feature.LastCommandCompleted, Is.Not.Null);
+            Assert.That(feature.LastCommandCompleted.Result.Succeeded, Is.False);
+        }
+
         private GameObject CreateObject(string name)
         {
             var value = new GameObject(name);
@@ -205,6 +245,18 @@ namespace Deucarian.TemplateViewer.Tests
                 field.IsDefined(typeof(SerializeField), false),
                 Is.True);
             field.SetValue(bootstrap, features);
+        }
+
+        private sealed class SuccessfulReadinessFeature :
+            IViewerModelReadinessFeature
+        {
+            public System.Threading.Tasks.Task<ViewerModelReadinessResult>
+                PrepareAsync(
+                    ViewerModelContext context,
+                    string remoteEndpoint,
+                    System.Threading.CancellationToken cancellationToken) =>
+                System.Threading.Tasks.Task.FromResult(
+                    ViewerModelReadinessResult.Success());
         }
     }
 }
