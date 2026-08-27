@@ -16,21 +16,28 @@ namespace Deucarian.TemplateViewer
     {
         private void ComposeCore()
         {
+            compositionStage = "discovering viewer features";
             featureBehaviours = ViewerFeatureComposition.ResolveBehaviours(
                 this,
                 explicitFeatureBehaviours);
+            compositionStage = "creating scene presentation dependencies";
             EnsureSceneDependencies();
+            compositionStage = "creating viewer rendering";
             ViewerRenderingInstaller rendering = ComposeRendering();
+            compositionStage = "creating viewer navigation";
             referenceNavigation = ComposeReferenceNavigation(rendering) ??
                 throw new InvalidOperationException(
                     "The viewer requires reference navigation.");
+            compositionStage = "creating the viewer shell";
             shellPresenter = ComposeShell(rendering);
             referenceNavigation.BeginReferenceLoad();
 
+            compositionStage = "creating the authenticated API connection";
             ComposeAuthentication(
                 out IApiClient apiClient,
                 out string apiBaseUrl,
                 out IReadOnlyCollection<string> effectiveOrigins);
+            compositionStage = "creating the model loader";
             modelLoader = new ObjectLoadingViewerModelLoader(
                 this,
                 apiClient,
@@ -39,6 +46,7 @@ namespace Deucarian.TemplateViewer
                 effectiveOrigins);
             modelLoader.ProgressChanged += OnModelLoadingProgress;
 
+            compositionStage = "resolving product feature ownership";
             IViewerVisibilityFeatureFactory visibilityFactory =
                 ResolveVisibilityFeatureFactory(featureBehaviours);
             ICommandHandler<ViewerApplication> initializationHandler =
@@ -48,6 +56,7 @@ namespace Deucarian.TemplateViewer
                 ViewerFeatureComposition.ResolveModelReadinessFeature(
                     featureBehaviours);
 
+            compositionStage = "creating the viewer application";
             application = new ViewerApplication(
                 new DirectViewerModelDescriptorResolver(),
                 modelLoader,
@@ -57,6 +66,7 @@ namespace Deucarian.TemplateViewer
                 authenticationSession,
                 visibilityFactory,
                 readinessFeature);
+            compositionStage = "creating viewer command handlers";
             var authenticationEvents =
                 new ViewerAuthenticationEventPublisher(
                     platformAdapter.EventPublisher,
@@ -69,6 +79,7 @@ namespace Deucarian.TemplateViewer
                     initializationHandler: initializationHandler));
 
             AttachFeatures(handlers);
+            compositionStage = "registering viewer command handlers";
             commandRuntime = new CommandRoutingRuntime<ViewerApplication>(
                 application,
                 handlers,
@@ -77,17 +88,21 @@ namespace Deucarian.TemplateViewer
                     logSuccessfulCommands: false,
                     logFailedCommands: true));
             commandRuntime.Dispatcher.CommandCompleted += OnCommandCompleted;
+            compositionStage = "creating the local command port";
             localCommandPort =
                 GetComponent<CommandRoutePortBehaviour>() ??
                 gameObject.AddComponent<CommandRoutePortBehaviour>();
             localCommandPort.Initialize(commandRuntime);
+            compositionStage = "registering viewer diagnostics";
             diagnosticRegistration = DiagnosticProviderRegistry.Register(
                 new ViewerApplicationDiagnosticProvider(application));
+            compositionStage = "connecting viewer lifecycle status";
             shellStatusAdapter = new ViewerShellStatusAdapter(
                 application,
                 shellPresenter,
                 platformAdapter.LifecycleStatusSink);
 
+            compositionStage = "activating the platform command transport";
             commandTransportActivation =
                 platformAdapter.ActivateCommandTransport(commandRuntime);
             if (commandTransportActivation == null)
@@ -104,7 +119,11 @@ namespace Deucarian.TemplateViewer
             for (int i = 0; i < featureBehaviours.Length; i++)
             {
                 ViewerFeatureBehaviour feature = featureBehaviours[i];
+                compositionStage = "attaching product feature " +
+                    feature.GetType().Name;
                 feature.Attach(application);
+                compositionStage = "creating command handlers for product " +
+                    "feature " + feature.GetType().Name;
                 IReadOnlyList<ICommandHandler<ViewerApplication>>
                     featureHandlers = feature.CreateCommandHandlers();
                 if (featureHandlers == null)

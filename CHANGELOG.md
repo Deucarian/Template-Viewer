@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1] - 2026-08-28
+
+### Fixed
+
+- Viewer composition failures now identify the failing startup stage, preserve
+  a sanitized actionable cause, and tell developers how to retry after fixing
+  the named configuration.
+
 ## [0.2.0] - 2026-08-27
 
 ### Breaking
