@@ -10,7 +10,7 @@ using Deucarian.TemplateViewer.Commands;
 using Deucarian.TemplateViewer.Diagnostics;
 using Deucarian.TemplateViewer.Loading;
 using Deucarian.Theming;
-using Deucarian.ViewerAuthentication;
+using Deucarian.Authentication;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerRendering;
 using Deucarian.ViewerShell;
@@ -44,7 +44,7 @@ namespace Deucarian.TemplateViewer
                 Array.Empty<ViewerFeatureBehaviour>();
 
         [Header("Authentication")]
-        [Tooltip("Optional credential-free token endpoint profile. When omitted, the shared Viewer Authentication Resources profile is used when present.")]
+        [Tooltip("Optional credential-free token endpoint profile. Assign it explicitly when this standalone template owns token acquisition.")]
         [SerializeField] private SessionTokenEndpointProfile
             authenticationTokenEndpointProfile;
         [Tooltip("Additional exact HTTP(S) origins eligible for the live session provider. Unlisted absolute cross-origin URLs remain anonymous public downloads.")]
@@ -70,8 +70,8 @@ namespace Deucarian.TemplateViewer
         private ViewerShellStatusAdapter shellStatusAdapter;
         private DeucarianThemeProvider referenceThemeProvider;
         private DeucarianViewerReferenceThemeRuntime referenceThemeRuntime;
-        private IViewerAuthenticationSession authenticationSession;
-        private IViewerAuthenticationAcquisitionProvider
+        private IAuthenticationSession authenticationSession;
+        private IAuthenticationAcquisitionProvider
             authenticationAcquisitionProvider;
         private IDisposable authenticationTargetRegistration;
         private IDisposable runtimeConnection;
@@ -114,11 +114,8 @@ namespace Deucarian.TemplateViewer
                 ResolvedNavigationComposition.ThemeMode);
         public SessionTokenEndpointProfile
             ResolvedAuthenticationTokenEndpointProfile =>
-                authenticationTokenEndpointProfile ??
-                Resources.Load<SessionTokenEndpointProfile>(
-                    ViewerAuthenticationEndpointProviderFactory
-                        .DefaultProfileResourcePath);
-        public IViewerAuthenticationAcquisitionProvider
+                authenticationTokenEndpointProfile;
+        public IAuthenticationAcquisitionProvider
             AuthenticationAcquisitionProvider =>
                 authenticationAcquisitionProvider;
         public CommandRoutePortBehaviour LocalCommandPort => localCommandPort;
