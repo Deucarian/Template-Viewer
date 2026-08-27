@@ -29,7 +29,7 @@
     "com.deucarian.viewer-navigation",
     "com.deucarian.viewer-rendering",
     "com.deucarian.viewer-shell",
-    "com.deucarian.viewer-authentication",
+    "com.deucarian.authentication",
     "com.unity.nuget.newtonsoft-json",
     "com.unity.modules.uielements"
   ],
