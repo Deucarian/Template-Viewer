@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Deucarian.CommandRouting;
 using Deucarian.TemplateViewer.Commands;
 using UnityEngine;
@@ -44,6 +46,43 @@ namespace Deucarian.TemplateViewer
     }
 
     /// <summary>
+    /// Completes product-owned model preparation after shared presentation,
+    /// visibility, and navigation are ready, but before the application enters
+    /// the Ready lifecycle and publishes viewer_ready.
+    /// </summary>
+    public interface IViewerModelReadinessFeature
+    {
+        Task<ViewerModelReadinessResult> PrepareAsync(
+            ViewerModelContext context,
+            string remoteEndpoint,
+            CancellationToken cancellationToken);
+    }
+
+    public sealed class ViewerModelReadinessResult
+    {
+        private ViewerModelReadinessResult(bool succeeded, string message)
+        {
+            Succeeded = succeeded;
+            Message = string.IsNullOrWhiteSpace(message)
+                ? string.Empty
+                : message.Trim();
+        }
+
+        public bool Succeeded { get; }
+        public string Message { get; }
+
+        public static ViewerModelReadinessResult Success() =>
+            new ViewerModelReadinessResult(true, string.Empty);
+
+        public static ViewerModelReadinessResult Failure(string message) =>
+            new ViewerModelReadinessResult(
+                false,
+                string.IsNullOrWhiteSpace(message)
+                    ? "Product model preparation failed."
+                    : message);
+    }
+
+    /// <summary>
     /// Scene-local extension point for product commands and product visibility.
     /// Add derived components beside the platform-specific ViewerBootstrap or
     /// assign same-scene components through its explicit feature list.
@@ -59,6 +98,9 @@ namespace Deucarian.TemplateViewer
 
         public virtual IViewerVisibilityFeatureFactory
             VisibilityFeatureFactory => null;
+
+        public virtual IViewerModelReadinessFeature
+            ModelReadinessFeature => null;
 
         public virtual IReadOnlyList<ICommandHandler<ViewerApplication>>
             CreateCommandHandlers() =>
@@ -79,6 +121,17 @@ namespace Deucarian.TemplateViewer
         }
 
         public virtual void Detach(ViewerApplication application)
+        {
+        }
+
+        /// <summary>
+        /// Observes completed commands without owning routing or transport.
+        /// Product features may use this to project domain-specific failures
+        /// through the application's event publisher.
+        /// </summary>
+        public virtual void OnCommandCompleted(
+            ViewerApplication application,
+            CommandDispatchEventArgs eventArgs)
         {
         }
     }
@@ -151,6 +204,37 @@ namespace Deucarian.TemplateViewer
                     throw new InvalidOperationException(
                         "A product initialization handler must handle only " +
                         InitializeViewerCommandHandler.CommandName + ".");
+                }
+
+                result = candidate;
+            }
+
+            return result;
+        }
+
+        public static IViewerModelReadinessFeature
+            ResolveModelReadinessFeature(
+                IReadOnlyList<ViewerFeatureBehaviour> features)
+        {
+            IViewerModelReadinessFeature result = null;
+            if (features == null)
+            {
+                return null;
+            }
+
+            for (int index = 0; index < features.Count; index++)
+            {
+                IViewerModelReadinessFeature candidate =
+                    features[index]?.ModelReadinessFeature;
+                if (candidate == null)
+                {
+                    continue;
+                }
+
+                if (result != null && !ReferenceEquals(result, candidate))
+                {
+                    throw new InvalidOperationException(
+                        "Only one viewer feature may own model readiness.");
                 }
 
                 result = candidate;

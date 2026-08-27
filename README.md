@@ -50,7 +50,12 @@ adapter tooling without giving it ownership of feature discovery.
 
 A feature may contribute command handlers, replace the generic
 `initialize_viewer` handler, provide one domain visibility owner, and
-contribute command-harness scenarios.
+contribute command-harness scenarios. A product may also provide one
+`IViewerModelReadinessFeature` for asynchronous work that must finish after
+shared model presentation and navigation registration but before
+`viewer_ready`, such as loading product annotations. Features may observe
+completed commands to publish domain-specific events, while routing and
+transport ownership remain in the core and active platform adapter.
 
 ## Commands and events
 
@@ -67,7 +72,8 @@ Wire names remain stable across adapters. Generic commands are:
 Generic application events are `viewer_loading`, `viewer_ready`,
 `viewer_failed`, `selection_applied`, `viewer_disposed`, and the sanitized
 authentication lifecycle events. `viewer_ready` is emitted only after loading,
-presentation, element indexing, and reference registration complete.
+presentation, element indexing, reference registration, and any configured
+product readiness feature complete.
 
 `ViewerCommandHarnessScenario`, `ViewerCommandHarnessCatalog`, and
 `ViewerCommandHarnessCatalogBuilder` describe transport-neutral command
