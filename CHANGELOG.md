@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.1] - 2026-08-27
+
+### Added
+
+- Added a platform-neutral product readiness feature that can complete
+  asynchronous model preparation before the Ready lifecycle and
+  `viewer_ready` event.
+- Added a product command-completion observer without exposing or duplicating
+  the command router.
+
+### Changed
+
+- Product readiness participates in initialization cancellation,
+  supersession, and failure handling.
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

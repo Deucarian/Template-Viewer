@@ -44,6 +44,9 @@ namespace Deucarian.TemplateViewer
             ICommandHandler<ViewerApplication> initializationHandler =
                 ViewerFeatureComposition.ResolveInitializationCommandHandler(
                     featureBehaviours);
+            IViewerModelReadinessFeature readinessFeature =
+                ViewerFeatureComposition.ResolveModelReadinessFeature(
+                    featureBehaviours);
 
             application = new ViewerApplication(
                 new DirectViewerModelDescriptorResolver(),
@@ -52,7 +55,8 @@ namespace Deucarian.TemplateViewer
                 platformAdapter.EventPublisher,
                 embeddedReferenceModel,
                 authenticationSession,
-                visibilityFactory);
+                visibilityFactory,
+                readinessFeature);
             var authenticationEvents =
                 new ViewerAuthenticationEventPublisher(
                     platformAdapter.EventPublisher,
@@ -72,6 +76,7 @@ namespace Deucarian.TemplateViewer
                     historyCapacity: 64,
                     logSuccessfulCommands: false,
                     logFailedCommands: true));
+            commandRuntime.Dispatcher.CommandCompleted += OnCommandCompleted;
             localCommandPort =
                 GetComponent<CommandRoutePortBehaviour>() ??
                 gameObject.AddComponent<CommandRoutePortBehaviour>();
@@ -134,6 +139,10 @@ namespace Deucarian.TemplateViewer
             CommandRoutingRuntime<ViewerApplication> runtime = commandRuntime;
             localCommandPort = null;
             TryCleanup(() => routePort?.Clear(runtime));
+            if (runtime != null)
+            {
+                runtime.Dispatcher.CommandCompleted -= OnCommandCompleted;
+            }
 
             ViewerApplication currentApplication = application;
             application = null;
@@ -201,6 +210,21 @@ namespace Deucarian.TemplateViewer
             }
 
             return result;
+        }
+
+        private void OnCommandCompleted(
+            object sender,
+            CommandDispatchEventArgs eventArgs)
+        {
+            ViewerApplication currentApplication = application;
+            ViewerFeatureBehaviour[] features = featureBehaviours;
+            for (int index = 0; index < features.Length; index++)
+            {
+                ViewerFeatureBehaviour feature = features[index];
+                TryCleanup(() => feature?.OnCommandCompleted(
+                    currentApplication,
+                    eventArgs));
+            }
         }
 
         private static void TryCleanup(Action cleanup)

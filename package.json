@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.template.viewer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Deucarian Viewer Template",
   "description": "Platform-neutral viewer application core with model loading, presentation, navigation, selection, authentication, commands, diagnostics, and explicit platform adapters.",
   "unity": "6000.0",
