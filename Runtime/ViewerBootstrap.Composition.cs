@@ -6,7 +6,7 @@ using Deucarian.Diagnostics;
 using Deucarian.TemplateViewer.Commands;
 using Deucarian.TemplateViewer.Diagnostics;
 using Deucarian.TemplateViewer.Loading;
-using Deucarian.ViewerAuthentication;
+using Deucarian.Authentication;
 using Deucarian.ViewerRendering;
 using Deucarian.ViewerShell;
 

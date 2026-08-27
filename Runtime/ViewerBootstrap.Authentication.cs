@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Deucarian.API.Core;
 using Deucarian.Session.APIIntegration;
-using Deucarian.ViewerAuthentication;
+using Deucarian.Authentication;
 
 namespace Deucarian.TemplateViewer
 {
@@ -23,14 +23,14 @@ namespace Deucarian.TemplateViewer
 
             if (ShouldUseLocalAuthentication(resolution.Status))
             {
-                var localSession = new ViewerAuthenticationSession();
+                var localSession = new AuthenticationSession();
                 IApiClient localClient = ApiClientFactory.Create(
                     apiClientConfig,
                     localSession.ApiAuthProvider);
-                IViewerAuthenticationAcquisitionProvider localProvider =
+                IAuthenticationAcquisitionProvider localProvider =
                     CreateAuthenticationAcquisitionProvider(localClient);
                 IDisposable localRegistration =
-                    ViewerAuthenticationTargetRegistry.Register(
+                    AuthenticationTargetRegistry.Register(
                         "viewer-" + GetInstanceID(),
                         "Viewer",
                         localSession,
@@ -58,9 +58,9 @@ namespace Deucarian.TemplateViewer
 
             try
             {
-                ViewerAuthenticationTargetRegistry.TryGet(
+                AuthenticationTargetRegistry.TryGet(
                     connection.TargetId,
-                    out ViewerAuthenticationTarget target);
+                    out AuthenticationTarget target);
                 authenticationSession = connection.Session;
                 authenticationAcquisitionProvider =
                     target?.AcquisitionProvider;
@@ -112,9 +112,9 @@ namespace Deucarian.TemplateViewer
                 return false;
             }
 
-            if (!ViewerAuthenticationTargetRegistry.TryGet(
+            if (!AuthenticationTargetRegistry.TryGet(
                     connection.TargetId,
-                    out ViewerAuthenticationTarget target) ||
+                    out AuthenticationTarget target) ||
                 !ReferenceEquals(target.Session, connection.Session))
             {
                 return false;
@@ -177,14 +177,14 @@ namespace Deucarian.TemplateViewer
             }
         }
 
-        private IViewerAuthenticationAcquisitionProvider
+        private IAuthenticationAcquisitionProvider
             CreateAuthenticationAcquisitionProvider(IApiClient apiClient)
         {
             SessionTokenEndpointProfile profile =
                 ResolvedAuthenticationTokenEndpointProfile;
             return profile == null
                 ? null
-                : ViewerAuthenticationEndpointProviderFactory.Create(
+                : AuthenticationEndpointProviderFactory.Create(
                     profile,
                     apiClient);
         }
