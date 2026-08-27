@@ -11,7 +11,8 @@
   "sampleAssemblies": [],
   "testAssemblies": [
     "Deucarian.TemplateViewer.Tests.EditMode",
-    "Deucarian.TemplateViewer.Tests.PlayMode"
+    "Deucarian.TemplateViewer.Tests.PlayMode",
+    "Deucarian.TemplateViewer.Tests.Support"
   ],
   "requiredDependencies": [
     "com.deucarian.api",

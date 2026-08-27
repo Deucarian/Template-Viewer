@@ -38,7 +38,16 @@ namespace Deucarian.TemplateViewer.Tests
 
             for (int index = scenes.Count - 1; index >= 0; index--)
             {
-                if (scenes[index].IsValid() && scenes[index].isLoaded)
+                if (!scenes[index].IsValid() || !scenes[index].isLoaded)
+                {
+                    continue;
+                }
+
+                if (EditorSceneManager.IsPreviewScene(scenes[index]))
+                {
+                    EditorSceneManager.ClosePreviewScene(scenes[index]);
+                }
+                else
                 {
                     EditorSceneManager.CloseScene(scenes[index], true);
                 }
@@ -103,6 +112,7 @@ namespace Deucarian.TemplateViewer.Tests
             Assert.That(local.AttachCount, Is.EqualTo(1));
             Assert.That(explicitFeature.AttachCount, Is.EqualTo(1));
 
+            bootstrap.ReleaseNow();
             UnityEngine.Object.DestroyImmediate(root);
 
             Assert.That(explicitFeature.DetachCount, Is.EqualTo(1));
@@ -118,7 +128,9 @@ namespace Deucarian.TemplateViewer.Tests
             var navigation = new FakeViewerReferenceNavigation();
             bootstrap.Adapter = adapter;
             bootstrap.TestReferenceNavigation = navigation;
-            SetExplicitFeatures(bootstrap, null);
+            SetExplicitFeatures(
+                bootstrap,
+                new ViewerFeatureBehaviour[] { null });
 
             InvalidOperationException exception =
                 Assert.Throws<InvalidOperationException>(bootstrap.ComposeNow);
@@ -175,7 +187,8 @@ namespace Deucarian.TemplateViewer.Tests
 
         private Scene CreateScene(string name)
         {
-            Scene value = SceneManager.CreateScene(name);
+            Scene value = EditorSceneManager.NewPreviewScene();
+            value.name = name;
             scenes.Add(value);
             return value;
         }

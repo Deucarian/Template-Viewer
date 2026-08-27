@@ -2,7 +2,8 @@
   "name": "Deucarian.TemplateViewer.Tests.PlayMode",
   "rootNamespace": "Deucarian.TemplateViewer.Tests",
   "references": [
-    "Deucarian.TemplateViewer"
+    "Deucarian.TemplateViewer",
+    "Deucarian.TemplateViewer.Tests.Support"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

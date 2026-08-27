@@ -83,6 +83,7 @@ namespace Deucarian.TemplateViewer.Tests
                 adapter.Lifecycles,
                 Is.EqualTo(new[] { ViewerLifecycleState.Created }));
 
+            bootstrap.ReleaseNow();
             UnityEngine.Object.DestroyImmediate(root);
             root = null;
 

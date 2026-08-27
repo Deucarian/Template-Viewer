@@ -102,6 +102,9 @@ namespace Deucarian.TemplateViewer.Tests
         }
     }
 
+    /// <summary>
+    /// Runtime-compatible bootstrap component used by viewer composition tests.
+    /// </summary>
     public sealed class FakeViewerBootstrap : ViewerBootstrap
     {
         public IViewerPlatformAdapter Adapter { get; set; }
@@ -111,6 +114,13 @@ namespace Deucarian.TemplateViewer.Tests
         public bool PlatformConfigurationIsValid { get; set; } = true;
 
         public void ComposeNow() => Compose();
+
+        public void ReleaseNow() => base.OnDestroy();
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+        }
 
         protected override IViewerPlatformAdapter CreatePlatformAdapter()
         {

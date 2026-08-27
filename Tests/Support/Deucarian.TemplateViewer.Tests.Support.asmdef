@@ -1,33 +1,18 @@
 {
-  "name": "Deucarian.TemplateViewer.Tests.EditMode",
+  "name": "Deucarian.TemplateViewer.Tests.Support",
   "rootNamespace": "Deucarian.TemplateViewer.Tests",
   "references": [
-    "Deucarian.API",
-    "Deucarian.CameraNavigation",
     "Deucarian.CommandRouting",
-    "Deucarian.ObjectLoading.APIIntegration",
-    "Deucarian.Session",
-    "Deucarian.Session.APIIntegration",
     "Deucarian.TemplateViewer",
-    "Deucarian.TemplateViewer.Tests.Support",
-    "Deucarian.Theming",
-    "Deucarian.UI",
-    "Deucarian.UI.Editor",
-    "Deucarian.ViewerAuthentication",
-    "Deucarian.ViewerNavigation",
     "Deucarian.ViewerRendering",
     "Deucarian.ViewerShell",
-    "UnityEngine.UIElementsModule",
     "Newtonsoft.Json"
   ],
-  "includePlatforms": [
-    "Editor"
-  ],
+  "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": true,
   "precompiledReferences": [
-    "nunit.framework.dll",
     "Newtonsoft.Json.dll"
   ],
   "autoReferenced": false,
