@@ -68,6 +68,9 @@ namespace Deucarian.TemplateViewer
         private ViewerRenderingInstaller renderingInstaller;
         private ViewerShellPresenter shellPresenter;
         private ViewerShellStatusAdapter shellStatusAdapter;
+        private ViewerCommandFailureProjector commandFailureProjector;
+        private ViewerDisplaySettingsEventPublisher displaySettingsEvents;
+        private ViewerModelRevealReadinessFeature modelRevealReadiness;
         private DeucarianThemeProvider referenceThemeProvider;
         private DeucarianViewerReferenceThemeRuntime referenceThemeRuntime;
         private IAuthenticationSession authenticationSession;
@@ -120,8 +123,18 @@ namespace Deucarian.TemplateViewer
             AuthenticationAcquisitionProvider =>
                 authenticationAcquisitionProvider;
         public CommandRoutePortBehaviour LocalCommandPort => localCommandPort;
+        internal System.Threading.Tasks.Task CommandFailureProjectionIdle =>
+            commandFailureProjector?.WhenIdle ??
+            System.Threading.Tasks.Task.CompletedTask;
 
         protected abstract IViewerPlatformAdapter CreatePlatformAdapter();
+
+        /// <summary>
+        /// Enables the reference model reveal for platform bootstraps that
+        /// explicitly own that presentation contract. Custom and non-Web
+        /// bootstraps retain their established readiness behavior by default.
+        /// </summary>
+        protected virtual bool EnableModelRevealReadiness => false;
 
         protected virtual bool TryValidatePlatformConfiguration(
             IViewerPlatformAdapter adapter,
@@ -160,6 +173,13 @@ namespace Deucarian.TemplateViewer
         protected virtual void OnDestroy()
         {
             ReleaseComposition();
+        }
+
+        protected virtual void OnDisable()
+        {
+            // The reveal feature's lifecycle relay is the single owner of
+            // host interruption. Keep this virtual hook source-compatible for
+            // existing derived bootstraps.
         }
 
         /// <summary>

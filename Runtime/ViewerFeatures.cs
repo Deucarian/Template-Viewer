@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.CommandRouting;
 using Deucarian.TemplateViewer.Commands;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -125,13 +126,46 @@ namespace Deucarian.TemplateViewer
         }
 
         /// <summary>
-        /// Observes completed commands without owning routing or transport.
-        /// Product features may use this to project domain-specific failures
-        /// through the application's event publisher.
+        /// Observes decoded command dispatch without owning routing or
+        /// transport. This existing hook does not receive protocol failures.
         /// </summary>
         public virtual void OnCommandCompleted(
             ViewerApplication application,
             CommandDispatchEventArgs eventArgs)
+        {
+        }
+
+        /// <summary>
+        /// Adjusts product-owned fields on a defensive copy of the canonical
+        /// command-failure payload before its one remote publication. Template
+        /// Viewer reapplies command, error_code, and message afterward.
+        /// </summary>
+        public virtual void CustomizeCommandFailureProjection(
+            ViewerApplication application,
+            string command,
+            JObject payload)
+        {
+        }
+
+        /// <summary>
+        /// Observes the exact canonical command_failed projection on the Unity
+        /// composition context. Products may mirror its immutable payload to
+        /// local legacy observers; the core remains the sole remote publisher.
+        /// </summary>
+        public virtual void OnCommandFailureProjected(
+            ViewerApplication application,
+            ViewerCommandFailureProjectionEventArgs eventArgs)
+        {
+        }
+
+        /// <summary>
+        /// Observes one canonical sanitized authentication outcome. Products
+        /// may mirror the immutable payload to local legacy observers; the
+        /// core remains the sole remote publisher.
+        /// </summary>
+        public virtual void OnAuthenticationOutcome(
+            ViewerApplication application,
+            ViewerAuthenticationOutcomeEventArgs eventArgs)
         {
         }
     }

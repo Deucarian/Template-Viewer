@@ -1,9 +1,7 @@
 using System;
-using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.Authentication;
-using Newtonsoft.Json.Linq;
 
 namespace Deucarian.TemplateViewer.Commands
 {
@@ -16,10 +14,20 @@ namespace Deucarian.TemplateViewer.Commands
     {
         private readonly IViewerEventPublisher eventPublisher;
         private readonly string remoteEndpoint;
+        private readonly Action<ViewerAuthenticationOutcomeEventArgs>
+            notifyOutcome;
 
         public ViewerAuthenticationEventPublisher(
             IViewerEventPublisher publisher,
             string configuredRemoteEndpoint)
+            : this(publisher, configuredRemoteEndpoint, null)
+        {
+        }
+
+        internal ViewerAuthenticationEventPublisher(
+            IViewerEventPublisher publisher,
+            string configuredRemoteEndpoint,
+            Action<ViewerAuthenticationOutcomeEventArgs> outcomeNotification)
         {
             eventPublisher = publisher ??
                 throw new ArgumentNullException(nameof(publisher));
@@ -28,6 +36,7 @@ namespace Deucarian.TemplateViewer.Commands
                     "A configured platform endpoint is required.",
                     nameof(configuredRemoteEndpoint))
                 : configuredRemoteEndpoint.Trim();
+            notifyOutcome = outcomeNotification;
         }
 
         public Task PublishAsync(
@@ -41,24 +50,23 @@ namespace Deucarian.TemplateViewer.Commands
                 throw new ArgumentNullException(nameof(status));
             }
 
-            var payload = new JObject
+            ViewerAuthenticationOutcomeEventArgs outcome =
+                ViewerAuthenticationOutcomeEventArgs.Create(
+                    eventName,
+                    status);
+            try
             {
-                ["status"] = status.Status.ToString(),
-                ["has_access_token"] = status.HasAccessToken,
-                ["can_refresh"] = status.CanRefresh,
-                ["expiry_known"] = status.ExpiresAtUtc.HasValue
-            };
-            if (status.ExpiresAtUtc.HasValue)
+                notifyOutcome?.Invoke(outcome);
+            }
+            catch (Exception)
             {
-                payload["expires_at_utc"] =
-                    status.ExpiresAtUtc.Value.ToUniversalTime().ToString(
-                        "O",
-                        CultureInfo.InvariantCulture);
+                // A local compatibility observer cannot suppress the one
+                // authoritative platform publication.
             }
 
             return eventPublisher.PublishAsync(
                 eventName,
-                payload,
+                outcome.Payload,
                 remoteEndpoint,
                 cancellationToken);
         }
