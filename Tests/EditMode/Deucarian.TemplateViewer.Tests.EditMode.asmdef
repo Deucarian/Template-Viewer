@@ -15,6 +15,7 @@
     "Deucarian.UI.Editor",
     "Deucarian.Authentication",
     "Deucarian.Authentication.ViewerIntegration",
+    "Deucarian.CameraNavigation.InputSystemIntegration",
     "Deucarian.ViewerNavigation",
     "Deucarian.ViewerRendering",
     "Deucarian.ViewerShell",

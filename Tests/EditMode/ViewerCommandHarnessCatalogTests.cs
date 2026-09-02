@@ -14,7 +14,7 @@ namespace Deucarian.TemplateViewer.Tests
         [Test]
         public void GenericCatalogPreservesCommandWireNames()
         {
-            var handlers = ViewerCommandHandlers.Create();
+            var handlers = ViewerCommandHandlers.CreateDefault();
             ViewerCommandHarnessCatalog catalog =
                 ViewerCommandHarnessCatalogBuilder.Create(
                     handlers,
@@ -31,6 +31,17 @@ namespace Deucarian.TemplateViewer.Tests
             Assert.That(commands, Does.Contain("clear_selection"));
             Assert.That(commands, Does.Contain("dispose_viewer"));
             Assert.That(commands, Does.Contain("update_access_token"));
+            Assert.That(commands, Does.Contain("navigation"));
+            Assert.That(commands, Does.Contain("set_display_settings"));
+
+            Assert.That(
+                catalog.Scenarios.Single(value =>
+                    value.Id == "navigation-home").RunAutomatically,
+                Is.False);
+            Assert.That(
+                catalog.Scenarios.Single(value =>
+                    value.Id == "display-settings").RunAutomatically,
+                Is.False);
         }
 
         [Test]
@@ -43,7 +54,7 @@ namespace Deucarian.TemplateViewer.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () => ViewerCommandHarnessCatalogBuilder.Create(
-                    ViewerCommandHandlers.Create(),
+                    ViewerCommandHandlers.CreateDefault(),
                     new[] { scenario }));
         }
 

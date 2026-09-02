@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Deucarian.Authentication;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -215,6 +217,97 @@ namespace Deucarian.TemplateViewer.Tests
             Assert.That(feature.LastCommandCompleted.Result.Succeeded, Is.False);
         }
 
+        [Test]
+        public async Task AuthenticationOutcomeUsesOneFeatureProjectionAndRemote()
+        {
+            GameObject root = CreateObject("Viewer authentication outcome");
+            FakeViewerBootstrap bootstrap =
+                root.AddComponent<FakeViewerBootstrap>();
+            RecordingViewerFeature throwing =
+                root.AddComponent<RecordingViewerFeature>();
+            throwing.MutateAuthenticationOutcomePayload = true;
+            throwing.ThrowOnAuthenticationOutcome = true;
+            RecordingViewerFeature recording =
+                root.AddComponent<RecordingViewerFeature>();
+            var adapter = new FakeViewerPlatformAdapter
+            {
+                EventEndpoint = "parent:https://configured.example",
+                RequireExactEventEndpoint = true
+            };
+            bootstrap.Adapter = adapter;
+            bootstrap.ComposeNow();
+
+            var outcome = await bootstrap.LocalCommandPort.RouteMessageAsync(
+                "{\"command\":\"update_access_token\",\"payload\":" +
+                "{\"access_token\":\"opaque-test-value\"," +
+                "\"expires_at_utc\":\"2099-08-18T10:30:00Z\"}}",
+                "test",
+                "parent:https://one-off-command.example",
+                CancellationToken.None);
+            Assert.That(
+                outcome.Result.Succeeded,
+                Is.True,
+                outcome.Response);
+
+            FakeViewerPublishedEvent[] outcomes = adapter.PublishedEvents
+                .Where(value => value.EventName ==
+                    AuthenticationEventNames.AccessTokenUpdated)
+                .ToArray();
+            Assert.That(outcomes, Has.Length.EqualTo(1));
+            Assert.That(
+                outcomes[0].RemoteEndpoint,
+                Is.EqualTo(adapter.EventEndpoint));
+            Assert.That(
+                outcomes[0].Payload.Value<string>("status"),
+                Is.EqualTo("Active"));
+            Assert.That(outcomes[0].Payload.Property("access_token"), Is.Null);
+            Assert.That(throwing.AuthenticationOutcomeCount, Is.EqualTo(1));
+            Assert.That(recording.AuthenticationOutcomeCount, Is.EqualTo(1));
+            Assert.That(
+                recording.LastAuthenticationOutcome.EventName,
+                Is.EqualTo(AuthenticationEventNames.AccessTokenUpdated));
+            Assert.That(
+                recording.LastAuthenticationOutcome.Payload
+                    .Property("access_token"),
+                Is.Null);
+        }
+
+        [Test]
+        public void NonWebBootstrapDoesNotInstallModelRevealReadiness()
+        {
+            GameObject root = CreateObject("Non-Web reveal composition");
+            FakeViewerBootstrap bootstrap =
+                root.AddComponent<FakeViewerBootstrap>();
+            bootstrap.Adapter = new FakeViewerPlatformAdapter();
+
+            bootstrap.ComposeNow();
+
+            Assert.That(
+                root.GetComponents<ViewerModelRevealLifecycleRelay>(),
+                Is.Empty);
+            Assert.That(GetModelRevealReadiness(bootstrap), Is.Null);
+        }
+
+        [Test]
+        public void OptInBootstrapInstallsOneSharedModelRevealOwner()
+        {
+            GameObject root = CreateObject("Opt-in reveal composition");
+            RevealEnabledFakeViewerBootstrap bootstrap =
+                root.AddComponent<RevealEnabledFakeViewerBootstrap>();
+            bootstrap.Adapter = new FakeViewerPlatformAdapter();
+
+            bootstrap.ComposeNow();
+
+            Assert.That(
+                root.GetComponents<ViewerModelRevealLifecycleRelay>(),
+                Has.Length.EqualTo(1));
+            Assert.That(GetModelRevealReadiness(bootstrap), Is.Not.Null);
+
+            bootstrap.ReleaseNow();
+
+            Assert.That(GetModelRevealReadiness(bootstrap), Is.Null);
+        }
+
         private GameObject CreateObject(string name)
         {
             var value = new GameObject(name);
@@ -245,6 +338,16 @@ namespace Deucarian.TemplateViewer.Tests
                 field.IsDefined(typeof(SerializeField), false),
                 Is.True);
             field.SetValue(bootstrap, features);
+        }
+
+        private static object GetModelRevealReadiness(
+            ViewerBootstrap bootstrap)
+        {
+            FieldInfo field = typeof(ViewerBootstrap).GetField(
+                "modelRevealReadiness",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null);
+            return field.GetValue(bootstrap);
         }
 
         private sealed class SuccessfulReadinessFeature :

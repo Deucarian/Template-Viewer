@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Deucarian.API.Core;
 using Deucarian.CommandRouting;
 using Deucarian.Diagnostics;
@@ -9,6 +10,7 @@ using Deucarian.TemplateViewer.Loading;
 using Deucarian.Authentication;
 using Deucarian.ViewerRendering;
 using Deucarian.ViewerShell;
+using Newtonsoft.Json.Linq;
 
 namespace Deucarian.TemplateViewer
 {
@@ -55,6 +57,17 @@ namespace Deucarian.TemplateViewer
             IViewerModelReadinessFeature readinessFeature =
                 ViewerFeatureComposition.ResolveModelReadinessFeature(
                     featureBehaviours);
+            if (EnableModelRevealReadiness)
+            {
+                readinessFeature = ViewerModelReadinessComposition.Create(
+                    this,
+                    readinessFeature,
+                    out modelRevealReadiness);
+            }
+            else
+            {
+                modelRevealReadiness = null;
+            }
 
             compositionStage = "creating the viewer application";
             application = new ViewerApplication(
@@ -70,13 +83,16 @@ namespace Deucarian.TemplateViewer
             var authenticationEvents =
                 new ViewerAuthenticationEventPublisher(
                     platformAdapter.EventPublisher,
-                    platformAdapter.EventEndpoint);
+                    platformAdapter.EventEndpoint,
+                    OnAuthenticationOutcome);
             var handlers = new List<ICommandHandler<ViewerApplication>>(
-                ViewerCommandHandlers.Create(
+                ViewerCommandHandlers.CreateWithPresentation(
                     authenticationEvents,
                     includeGenericVisibilityCommands:
                         visibilityFactory == null,
-                    initializationHandler: initializationHandler));
+                    initializationHandler: initializationHandler,
+                    navigationController: navigationInstaller?.Controller,
+                    renderingController: rendering?.Controller));
 
             AttachFeatures(handlers);
             compositionStage = "registering viewer command handlers";
@@ -88,6 +104,17 @@ namespace Deucarian.TemplateViewer
                     logSuccessfulCommands: false,
                     logFailedCommands: true));
             commandRuntime.Dispatcher.CommandCompleted += OnCommandCompleted;
+            SynchronizationContext unityContext =
+                SynchronizationContext.Current ??
+                throw new InvalidOperationException(
+                    "Viewer composition requires Unity's main-thread " +
+                    "synchronization context.");
+            commandFailureProjector = new ViewerCommandFailureProjector(
+                commandRuntime,
+                unityContext,
+                application.PublishEventAsync,
+                OnCommandFailureProjected,
+                PrepareCommandFailureProjection);
             compositionStage = "creating the local command port";
             localCommandPort =
                 GetComponent<CommandRoutePortBehaviour>() ??
@@ -110,6 +137,17 @@ namespace Deucarian.TemplateViewer
                 throw new InvalidOperationException(
                     "The viewer platform adapter returned no command " +
                     "transport activation lease.");
+            }
+
+            if (rendering?.Controller != null)
+            {
+                compositionStage = "publishing initial display settings";
+                displaySettingsEvents =
+                    new ViewerDisplaySettingsEventPublisher(
+                        application,
+                        rendering.Controller,
+                        platformAdapter.EventEndpoint);
+                _ = displaySettingsEvents.PublishInitialAsync();
             }
         }
 
@@ -146,6 +184,22 @@ namespace Deucarian.TemplateViewer
 
         private void ReleaseComposition()
         {
+            ViewerCommandFailureProjector failureProjector =
+                commandFailureProjector;
+            commandFailureProjector = null;
+            TryCleanup(() => failureProjector?.Dispose());
+
+            CommandRoutingRuntime<ViewerApplication> runtime = commandRuntime;
+            if (runtime != null)
+            {
+                runtime.Dispatcher.CommandCompleted -= OnCommandCompleted;
+            }
+
+            ViewerDisplaySettingsEventPublisher settingsEvents =
+                displaySettingsEvents;
+            displaySettingsEvents = null;
+            TryCleanup(() => settingsEvents?.Dispose());
+
             ViewerShellStatusAdapter statusAdapter = shellStatusAdapter;
             shellStatusAdapter = null;
             TryCleanup(() => statusAdapter?.Dispose());
@@ -155,13 +209,8 @@ namespace Deucarian.TemplateViewer
             TryCleanup(() => activation?.Dispose());
 
             CommandRoutePortBehaviour routePort = localCommandPort;
-            CommandRoutingRuntime<ViewerApplication> runtime = commandRuntime;
             localCommandPort = null;
             TryCleanup(() => routePort?.Clear(runtime));
-            if (runtime != null)
-            {
-                runtime.Dispatcher.CommandCompleted -= OnCommandCompleted;
-            }
 
             ViewerApplication currentApplication = application;
             application = null;
@@ -174,6 +223,10 @@ namespace Deucarian.TemplateViewer
             }
 
             TryCleanup(() => currentApplication?.Dispose());
+            ViewerModelRevealReadinessFeature revealReadiness =
+                modelRevealReadiness;
+            modelRevealReadiness = null;
+            TryCleanup(() => revealReadiness?.Dispose());
             commandRuntime = null;
             TryCleanup(() => runtime?.Dispose());
 
@@ -241,6 +294,54 @@ namespace Deucarian.TemplateViewer
             {
                 ViewerFeatureBehaviour feature = features[index];
                 TryCleanup(() => feature?.OnCommandCompleted(
+                    currentApplication,
+                    eventArgs));
+            }
+        }
+
+        private void OnCommandFailureProjected(
+            ViewerCommandFailureProjectionEventArgs eventArgs)
+        {
+            ViewerApplication currentApplication = application;
+            ViewerFeatureBehaviour[] features = featureBehaviours;
+            for (int index = 0; index < features.Length; index++)
+            {
+                ViewerFeatureBehaviour feature = features[index];
+                TryCleanup(() => feature?.OnCommandFailureProjected(
+                    currentApplication,
+                    eventArgs));
+            }
+        }
+
+        private ViewerCommandFailureProjectionEventArgs
+            PrepareCommandFailureProjection(
+                ViewerCommandFailureProjectionEventArgs eventArgs)
+        {
+            JObject payload = eventArgs.Payload;
+            ViewerApplication currentApplication = application;
+            ViewerFeatureBehaviour[] features = featureBehaviours;
+            for (int index = 0; index < features.Length; index++)
+            {
+                ViewerFeatureBehaviour feature = features[index];
+                TryCleanup(() =>
+                    feature?.CustomizeCommandFailureProjection(
+                        currentApplication,
+                        eventArgs.Command,
+                        payload));
+            }
+
+            return eventArgs.WithProductPayload(payload);
+        }
+
+        private void OnAuthenticationOutcome(
+            ViewerAuthenticationOutcomeEventArgs eventArgs)
+        {
+            ViewerApplication currentApplication = application;
+            ViewerFeatureBehaviour[] features = featureBehaviours;
+            for (int index = 0; index < features.Length; index++)
+            {
+                ViewerFeatureBehaviour feature = features[index];
+                TryCleanup(() => feature?.OnAuthenticationOutcome(
                     currentApplication,
                     eventArgs));
             }

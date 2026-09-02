@@ -101,7 +101,11 @@ namespace Deucarian.TemplateViewer
         private void DisposeCore()
         {
             disposed = true;
-            Interlocked.Increment(ref initializationGeneration);
+            lock (initializationStateGate)
+            {
+                initializationGeneration++;
+                ClearCurrentRemoteEndpoint();
+            }
             CancelInitialization();
             ViewerModelContext model = CurrentModel;
             CurrentModel = null;

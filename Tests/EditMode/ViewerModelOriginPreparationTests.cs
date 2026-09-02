@@ -34,14 +34,14 @@ namespace Deucarian.TemplateViewer.Tests
                 camera.transform.SetPositionAndRotation(
                     new Vector3(13f, 10f, -20f),
                     Quaternion.Euler(22f, -34f, 0f));
-                ViewerNavigationInstaller navigation =
-                    navigationObject.AddComponent<ViewerNavigationInstaller>();
-                navigation.Initialize(camera, null);
+                ViewerNavigationController navigation =
+                    navigationObject.AddComponent<ViewerNavigationController>();
+                navigation.Initialize(camera, navigationControls: null);
                 var visibility = new RecordingVisibilityFactory(element);
                 application = new ViewerApplication(
                     new DirectViewerModelDescriptorResolver(),
                     new EmbeddedOnlyModelLoader(),
-                    new ViewerNavigationReferenceAdapter(navigation),
+                    new ControllerReferenceNavigation(navigation),
                     new SilentEventPublisher(),
                     model,
                     null,
@@ -78,7 +78,7 @@ namespace Deucarian.TemplateViewer.Tests
                     Is.LessThan(0.001f));
                 Assert.That(model.transform.localScale, Is.EqualTo(placement.Scale));
                 Assert.That(
-                    navigation.Controller.ReferenceBounds.center.sqrMagnitude,
+                    navigation.ReferenceBounds.center.sqrMagnitude,
                     Is.LessThan(0.0001f));
                 Vector3 firstPosition = model.transform.position;
 
@@ -107,6 +107,30 @@ namespace Deucarian.TemplateViewer.Tests
                 UnityEngine.Object.DestroyImmediate(navigationObject);
                 UnityEngine.Object.DestroyImmediate(cameraObject);
             }
+        }
+
+        private sealed class ControllerReferenceNavigation :
+            IViewerReferenceNavigation
+        {
+            private readonly ViewerNavigationController controller;
+
+            public ControllerReferenceNavigation(
+                ViewerNavigationController navigationController)
+            {
+                controller = navigationController;
+            }
+
+            public void BeginReferenceLoad() =>
+                controller.BeginReferenceLoad();
+
+            public bool RegisterReference(
+                GameObject referenceRoot,
+                bool frame,
+                bool captureOrigin) =>
+                controller.RegisterReference(
+                    referenceRoot,
+                    frame,
+                    captureOrigin);
         }
 
         private sealed class RecordingVisibilityFactory :

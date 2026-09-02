@@ -18,6 +18,7 @@
     "com.deucarian.api",
     "com.deucarian.camera-navigation",
     "com.deucarian.command-routing",
+    "com.deucarian.common",
     "com.deucarian.diagnostics",
     "com.deucarian.logging",
     "com.deucarian.object-loading",
