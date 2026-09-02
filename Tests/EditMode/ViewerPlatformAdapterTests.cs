@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -92,6 +93,32 @@ namespace Deucarian.TemplateViewer.Tests
             Assert.That(
                 adapter.CleanupOrder,
                 Is.EqualTo(new[] { "activation", "adapter" }));
+        }
+
+        [Test]
+        public void InitialDisplayProjectionUsesTheActivatedExactEventRoute()
+        {
+            root = new GameObject("Viewer display route composition test");
+            FakeViewerBootstrap bootstrap =
+                root.AddComponent<FakeViewerBootstrap>();
+            bootstrap.enabled = false;
+            bootstrap.UseReferencePresentation = true;
+            var adapter = new FakeViewerPlatformAdapter
+            {
+                EventEndpoint = "parent:https://viewer.example",
+                RequireActiveTransportForEvents = true,
+                RequireExactEventEndpoint = true
+            };
+            bootstrap.Adapter = adapter;
+
+            bootstrap.ComposeNow();
+
+            Assert.That(adapter.ActivationCount, Is.EqualTo(1));
+            Assert.That(adapter.RejectedEventCount, Is.Zero);
+            Assert.That(
+                adapter.Events.Count(value => value ==
+                    "display_settings_changed@" + adapter.EventEndpoint),
+                Is.EqualTo(1));
         }
     }
 }

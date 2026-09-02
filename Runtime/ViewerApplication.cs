@@ -22,6 +22,7 @@ namespace Deucarian.TemplateViewer
         private readonly IViewerVisibilityFeatureFactory
             visibilityFeatureFactory;
         private readonly IViewerModelReadinessFeature modelReadinessFeature;
+        private readonly object initializationStateGate = new object();
         private CancellationTokenSource initializationCancellation;
         private IViewerVisibilityFeature visibilityFeature;
         private ViewerSelectionStateOwner selection;
@@ -72,35 +73,6 @@ namespace Deucarian.TemplateViewer
         public IAuthenticationSession AuthenticationSession =>
             authenticationSession;
 
-        /// <summary>
-        /// Publishes a product-owned event through the active platform
-        /// adapter's secured event route.
-        /// </summary>
-        public Task PublishEventAsync(
-            string eventName,
-            JObject payload,
-            string remoteEndpoint,
-            CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                throw new ArgumentException(
-                    "An event name is required.",
-                    nameof(eventName));
-            }
-
-            if (disposed)
-            {
-                throw new ObjectDisposedException(GetType().Name);
-            }
-
-            return eventPublisher.PublishAsync(
-                eventName.Trim(),
-                payload ?? new JObject(),
-                remoteEndpoint,
-                cancellationToken);
-        }
-
         public async Task<CommandOperationResult> InitializeAsync(
             ViewerInitializeRequest request,
             string remoteEndpoint,
@@ -123,14 +95,15 @@ namespace Deucarian.TemplateViewer
                     validationError);
             }
 
-            if (!TryAdvanceRevision(request.Revision))
+            if (!TryBeginInitialization(
+                    request.Revision,
+                    out int generation))
             {
                 return CommandOperationResult.Failure(
                     "stale_revision",
                     "The initialization revision is stale.");
             }
 
-            int generation = Interlocked.Increment(ref initializationGeneration);
             CancelInitialization();
             initializationCancellation =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -282,6 +255,14 @@ namespace Deucarian.TemplateViewer
                     remoteEndpoint,
                     token);
                 if (!IsInitializationCurrent(generation, token))
+                {
+                    return SupersededInitialization();
+                }
+
+                if (!TryCommitCurrentRemoteEndpoint(
+                        generation,
+                        remoteEndpoint,
+                        token))
                 {
                     return SupersededInitialization();
                 }
@@ -462,46 +443,5 @@ namespace Deucarian.TemplateViewer
                 message);
         }
 
-        private bool IsInitializationCurrent(
-            int generation,
-            CancellationToken cancellationToken)
-        {
-            if (generation != Volatile.Read(ref initializationGeneration))
-            {
-                return false;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            return true;
-        }
-
-        private bool IsInitializationSuperseded(
-            int generation,
-            CancellationToken callerCancellationToken) =>
-            generation != Volatile.Read(ref initializationGeneration) &&
-            !callerCancellationToken.IsCancellationRequested;
-
-        private bool TryAdvanceRevision(long revision)
-        {
-            while (true)
-            {
-                long current = Interlocked.Read(ref latestRevision);
-                if (revision <= current)
-                {
-                    return false;
-                }
-
-                if (Interlocked.CompareExchange(
-                        ref latestRevision,
-                        revision,
-                        current) == current)
-                {
-                    return true;
-                }
-            }
-        }
-
-        public bool TryRecordRevision(long revision) =>
-            TryAdvanceRevision(revision);
     }
 }

@@ -5,6 +5,7 @@
     "Deucarian.API",
     "Deucarian.CameraNavigation",
     "Deucarian.CommandRouting",
+    "Deucarian.Common",
     "Deucarian.Diagnostics",
     "Deucarian.Logging",
     "Deucarian.ObjectLoading",

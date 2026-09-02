@@ -3,11 +3,29 @@ using System.Threading;
 using System.Threading.Tasks;
 using Deucarian.CommandRouting;
 using Deucarian.Authentication;
+using Deucarian.ViewerNavigation;
+using Deucarian.ViewerRendering;
 
 namespace Deucarian.TemplateViewer.Commands
 {
     public static class ViewerCommandHandlers
     {
+        /// <summary>
+        /// Creates the default platform-neutral handler set without requiring
+        /// callers to reference the optional presentation-controller assemblies.
+        /// </summary>
+        public static IReadOnlyList<ICommandHandler<ViewerApplication>>
+            CreateDefault(
+                bool includeGenericVisibilityCommands = true,
+                ICommandHandler<ViewerApplication> initializationHandler = null) =>
+            CreateWithPresentation(
+                authenticationEventPublisher: null,
+                includeGenericVisibilityCommands:
+                    includeGenericVisibilityCommands,
+                initializationHandler: initializationHandler,
+                navigationController: null,
+                renderingController: null);
+
         public static IReadOnlyList<ICommandHandler<ViewerApplication>> Create(
             IAuthenticationEventPublisher authenticationEventPublisher = null,
             bool includeGenericVisibilityCommands = true,
@@ -25,6 +43,42 @@ namespace Deucarian.TemplateViewer.Commands
                 handlers.Insert(1, new SelectViewerElementsCommandHandler());
                 handlers.Insert(2, new ClearViewerSelectionCommandHandler());
             }
+
+            return handlers;
+        }
+
+        public static IReadOnlyList<ICommandHandler<ViewerApplication>>
+            CreateWithPresentation(
+            IAuthenticationEventPublisher authenticationEventPublisher = null,
+            bool includeGenericVisibilityCommands = true,
+            ICommandHandler<ViewerApplication> initializationHandler = null,
+            ViewerNavigationController navigationController = null,
+            IViewerRenderingController renderingController = null)
+        {
+            var handlers = new List<ICommandHandler<ViewerApplication>>
+            {
+                initializationHandler ?? new InitializeViewerCommandHandler()
+            };
+            if (includeGenericVisibilityCommands)
+            {
+                handlers.Add(new SelectViewerElementsCommandHandler());
+                handlers.Add(new ClearViewerSelectionCommandHandler());
+            }
+
+            handlers.Add(
+                new ViewerDisplaySettingsCommandHandler(renderingController));
+            handlers.Add(new ViewerNavigationCommandHandler(
+                navigationController,
+                ViewerNavigationCommandKind.Payload));
+            handlers.Add(new ViewerNavigationCommandHandler(
+                navigationController,
+                ViewerNavigationCommandKind.Mode));
+            handlers.Add(new ViewerNavigationCommandHandler(
+                navigationController,
+                ViewerNavigationCommandKind.DirectAction));
+            handlers.Add(new DisposeViewerCommandHandler());
+            handlers.Add(new AuthenticationCommandHandler<ViewerApplication>(
+                authenticationEventPublisher));
 
             return handlers;
         }

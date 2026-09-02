@@ -19,6 +19,9 @@ namespace Deucarian.TemplateViewer.Tests
         private readonly List<ViewerLifecycleState> lifecycles =
             new List<ViewerLifecycleState>();
         private readonly List<string> cleanupOrder = new List<string>();
+        private readonly List<FakeViewerPublishedEvent> publishedEvents =
+            new List<FakeViewerPublishedEvent>();
+        private bool transportActive;
 
         public string PlatformId { get; set; } = "test";
         public string EventEndpoint { get; set; } = "test://viewer";
@@ -27,11 +30,16 @@ namespace Deucarian.TemplateViewer.Tests
         public IReadOnlyList<string> Events => events;
         public IReadOnlyList<ViewerLifecycleState> Lifecycles => lifecycles;
         public IReadOnlyList<string> CleanupOrder => cleanupOrder;
+        public IReadOnlyList<FakeViewerPublishedEvent> PublishedEvents =>
+            publishedEvents;
         public int ActivationCount { get; private set; }
         public int ActivationDisposeCount { get; private set; }
         public int DisposeCount { get; private set; }
         public int ProgressCount { get; private set; }
         public bool ReturnNullActivation { get; set; }
+        public bool RequireActiveTransportForEvents { get; set; }
+        public bool RequireExactEventEndpoint { get; set; }
+        public int RejectedEventCount { get; private set; }
 
         public IDisposable ActivateCommandTransport(
             CommandRoutingRuntime<ViewerApplication> commandRuntime)
@@ -42,14 +50,19 @@ namespace Deucarian.TemplateViewer.Tests
             }
 
             ActivationCount++;
-            return ReturnNullActivation
-                ? null
-                : new CallbackLease(
-                    () =>
-                    {
-                        ActivationDisposeCount++;
-                        cleanupOrder.Add("activation");
-                    });
+            if (ReturnNullActivation)
+            {
+                return null;
+            }
+
+            transportActive = true;
+            return new CallbackLease(
+                () =>
+                {
+                    transportActive = false;
+                    ActivationDisposeCount++;
+                    cleanupOrder.Add("activation");
+                });
         }
 
         public Task PublishAsync(
@@ -58,7 +71,23 @@ namespace Deucarian.TemplateViewer.Tests
             string remoteEndpoint,
             CancellationToken cancellationToken = default)
         {
+            if ((RequireActiveTransportForEvents && !transportActive) ||
+                (RequireExactEventEndpoint &&
+                 !string.Equals(
+                     remoteEndpoint,
+                     EventEndpoint,
+                     StringComparison.Ordinal)))
+            {
+                RejectedEventCount++;
+                throw new InvalidOperationException(
+                    "The fake event route is not active or does not match.");
+            }
+
             events.Add(eventName + "@" + remoteEndpoint);
+            publishedEvents.Add(new FakeViewerPublishedEvent(
+                eventName,
+                payload,
+                remoteEndpoint));
             return Task.CompletedTask;
         }
 
@@ -102,16 +131,36 @@ namespace Deucarian.TemplateViewer.Tests
         }
     }
 
+    public sealed class FakeViewerPublishedEvent
+    {
+        public FakeViewerPublishedEvent(
+            string eventName,
+            JObject payload,
+            string remoteEndpoint)
+        {
+            EventName = eventName ?? string.Empty;
+            Payload = payload == null
+                ? new JObject()
+                : (JObject)payload.DeepClone();
+            RemoteEndpoint = remoteEndpoint;
+        }
+
+        public string EventName { get; }
+        public JObject Payload { get; }
+        public string RemoteEndpoint { get; }
+    }
+
     /// <summary>
     /// Runtime-compatible bootstrap component used by viewer composition tests.
     /// </summary>
-    public sealed class FakeViewerBootstrap : ViewerBootstrap
+    public class FakeViewerBootstrap : ViewerBootstrap
     {
         public IViewerPlatformAdapter Adapter { get; set; }
         public IViewerReferenceNavigation TestReferenceNavigation { get; set; } =
             new FakeViewerReferenceNavigation();
         public int FactoryCallCount { get; private set; }
         public bool PlatformConfigurationIsValid { get; set; } = true;
+        public bool UseReferencePresentation { get; set; }
 
         public void ComposeNow() => Compose();
 
@@ -139,15 +188,23 @@ namespace Deucarian.TemplateViewer.Tests
             return PlatformConfigurationIsValid;
         }
 
-        protected override ViewerRenderingInstaller ComposeRendering() => null;
+        protected override ViewerRenderingInstaller ComposeRendering() =>
+            UseReferencePresentation ? base.ComposeRendering() : null;
 
         protected override IViewerReferenceNavigation ComposeReferenceNavigation(
             ViewerRenderingInstaller rendering) =>
-            TestReferenceNavigation;
+            UseReferencePresentation
+                ? base.ComposeReferenceNavigation(rendering)
+                : TestReferenceNavigation;
 
         protected override ViewerShellPresenter ComposeShell(
             ViewerRenderingInstaller rendering) =>
-            null;
+            UseReferencePresentation ? base.ComposeShell(rendering) : null;
+    }
+
+    public sealed class RevealEnabledFakeViewerBootstrap : FakeViewerBootstrap
+    {
+        protected override bool EnableModelRevealReadiness => true;
     }
 
     /// <summary>
