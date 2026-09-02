@@ -209,6 +209,22 @@ namespace Deucarian.TemplateViewer.Commands
                     "initialize_viewer",
                     new JObject { ["revision"] = "$revision" }),
                 Scenario(
+                    "navigation-home",
+                    "Return camera to origin",
+                    "navigation",
+                    new JObject { ["action"] = "home" },
+                    runAutomatically: false),
+                Scenario(
+                    "display-settings",
+                    "Apply reference display settings",
+                    "set_display_settings",
+                    new JObject
+                    {
+                        ["rendering_mode"] = "color_faithful",
+                        ["camera_relative_light"] = false
+                    },
+                    runAutomatically: false),
+                Scenario(
                     "dispose",
                     "Dispose viewer",
                     "dispose_viewer",
