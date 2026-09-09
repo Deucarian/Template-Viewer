@@ -11,9 +11,10 @@ namespace Deucarian.TemplateViewer.Diagnostics
             @"https?://[^\s""'<>]+",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static readonly Regex SecretAssignment = new Regex(
-            @"\b(token|authorization|password|secret|api[_-]?key)\b" +
-            @"\s*[:=]\s*[^\s,;]+",
+        private static readonly Regex SecretContent = new Regex(
+            @"\b((access|refresh|id)[_-]?token|token|authorization|" +
+            @"proxy[_-]?authorization|password|passwd|secret|" +
+            @"client[_-]?secret|api[_-]?key|cookie|set[_-]?cookie|bearer)\b",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex Whitespace = new Regex(
@@ -42,9 +43,14 @@ namespace Deucarian.TemplateViewer.Diagnostics
             }
 
             string sanitized = AbsoluteUrl.Replace(value, "<redacted-url>");
-            sanitized = SecretAssignment.Replace(
-                sanitized,
-                match => match.Groups[1].Value + "=<redacted>");
+            // Exception text is not a structured credential format. Redacting
+            // only the next word leaks values in Bearer headers, JSON, quoted
+            // or multiword assignments. Omit the entire sensitive detail;
+            // the safe composition stage and exception type remain useful.
+            if (SecretContent.IsMatch(sanitized))
+            {
+                return "Sensitive configuration details were omitted.";
+            }
             sanitized = Whitespace.Replace(sanitized, " ").Trim();
             if (sanitized.Length <= MaximumDetailLength)
             {
