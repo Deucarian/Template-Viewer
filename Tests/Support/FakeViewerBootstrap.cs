@@ -161,6 +161,9 @@ namespace Deucarian.TemplateViewer.Tests
         public int FactoryCallCount { get; private set; }
         public bool PlatformConfigurationIsValid { get; set; } = true;
         public bool UseReferencePresentation { get; set; }
+        public IViewerLifecycleStatusSink EarlyStatusSink { get; set; }
+        public Exception FactoryFailure { get; set; }
+        public int EarlySinkFactoryCallCount { get; private set; }
 
         public void ComposeNow() => Compose();
 
@@ -174,7 +177,15 @@ namespace Deucarian.TemplateViewer.Tests
         protected override IViewerPlatformAdapter CreatePlatformAdapter()
         {
             FactoryCallCount++;
+            if (FactoryFailure != null) throw FactoryFailure;
             return Adapter;
+        }
+
+        protected override IViewerLifecycleStatusSink
+            CreateEarlyLifecycleStatusSink()
+        {
+            EarlySinkFactoryCallCount++;
+            return EarlyStatusSink;
         }
 
         protected override bool TryValidatePlatformConfiguration(

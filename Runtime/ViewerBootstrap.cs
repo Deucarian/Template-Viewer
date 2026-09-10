@@ -163,16 +163,13 @@ namespace Deucarian.TemplateViewer
                 Log.Error(
                     diagnostic,
                     this);
-                shellPresenter?.ApplyStatus(
-                    ViewerShellStatusSnapshot.Error(
-                        "Viewer configuration failed",
-                        diagnostic));
             }
         }
 
         protected virtual void OnDestroy()
         {
             ReleaseComposition();
+            earlyLifecycleStatusSink = null;
         }
 
         protected virtual void OnDisable()
@@ -196,6 +193,7 @@ namespace Deucarian.TemplateViewer
 
             try
             {
+                EnsureEarlyLifecycleStatusSink();
                 compositionStage = "creating the platform adapter";
                 platformAdapter = CreatePlatformAdapter();
                 compositionStage = "validating the platform adapter";
@@ -215,9 +213,10 @@ namespace Deucarian.TemplateViewer
                 ComposeCore();
                 compositionStage = "completed viewer composition";
             }
-            catch
+            catch (Exception)
             {
                 ReleaseComposition();
+                ReportCompositionFailure();
                 throw;
             }
         }

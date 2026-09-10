@@ -127,7 +127,7 @@ namespace Deucarian.TemplateViewer
             shellStatusAdapter = new ViewerShellStatusAdapter(
                 application,
                 shellPresenter,
-                platformAdapter.LifecycleStatusSink);
+                earlyLifecycleStatusSink ?? platformAdapter.LifecycleStatusSink);
 
             compositionStage = "activating the platform command transport";
             commandTransportActivation =

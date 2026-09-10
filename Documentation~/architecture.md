@@ -77,6 +77,13 @@ Each adapter decides whether and how to display or execute its scenarios.
 
 ## Dependency direction
 
+The optional early lifecycle-sink hook belongs to the same platform bootstrap
+as the ordinary adapter. Its construction must not depend on transport or UI.
+The core retains that sink while rolling back a failed composition, publishes
+only a safe failure code after cleanup, and uses it as the application's sole
+external sink after a successful composition. No platform-specific code enters
+the core and no early startup status is treated as model readiness.
+
 - Core never references adapter assemblies.
 - Adapters reference core and their platform transport.
 - Products reference core plus every adapter required by their build targets.

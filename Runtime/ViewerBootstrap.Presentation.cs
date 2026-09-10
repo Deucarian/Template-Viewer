@@ -1,5 +1,4 @@
 using System;
-using Deucarian.TemplateViewer.Selection;
 using Deucarian.Theming;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerNavigation.UI;
@@ -108,55 +107,11 @@ namespace Deucarian.TemplateViewer
             return renderingComposition;
         }
 
-        private void EnsureSceneDependencies()
-        {
-            if (loadedModelParent == null)
-            {
-                GameObject parent = new GameObject("Loaded Model");
-                parent.transform.SetParent(transform, false);
-                loadedModelParent = parent.transform;
-            }
-
-            if (embeddedReferenceModel == null)
-            {
-                embeddedReferenceModel = CreateEmbeddedReferenceModel();
-            }
-        }
-
-        private GameObject CreateEmbeddedReferenceModel()
-        {
-            GameObject root = new GameObject("Embedded Reference Model");
-            root.transform.SetParent(transform, false);
-            CreateElement(
-                root.transform,
-                "red",
-                PrimitiveType.Cube,
-                new Vector3(-2.2f, 0f, 0f));
-            CreateElement(
-                root.transform,
-                "green",
-                PrimitiveType.Sphere,
-                Vector3.zero);
-            CreateElement(
-                root.transform,
-                "blue",
-                PrimitiveType.Capsule,
-                new Vector3(2.2f, 0f, 0f));
-            return root;
-        }
-
-        private static void CreateElement(
-            Transform parent,
-            string id,
-            PrimitiveType primitiveType,
-            Vector3 position)
-        {
-            GameObject element = GameObject.CreatePrimitive(primitiveType);
-            element.name = "Element " + id;
-            element.transform.SetParent(parent, false);
-            element.transform.localPosition = position;
-            element.AddComponent<ViewerElement>().Initialize(id);
-        }
+        private void EnsureSceneDependencies() =>
+            ViewerReferenceSceneComposition.EnsureDependencies(
+                transform,
+                ref loadedModelParent,
+                ref embeddedReferenceModel);
 
         private void OnModelLoadingProgress(float normalized, string message)
         {
