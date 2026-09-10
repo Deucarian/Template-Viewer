@@ -145,6 +145,21 @@ reduced-motion policy as navigation. Product readiness begins concurrently,
 while `viewer_ready` waits for both; failure, cancellation, host interruption,
 or a motion-preference change always restores the authored scale.
 
+## Early startup status
+
+A platform bootstrap can override `CreateEarlyLifecycleStatusSink` to supply
+its external lifecycle sink without constructing transport, authentication, or
+UI. The core creates it before the platform adapter, reuses it for normal
+application lifecycle, and reports the stable `viewer_composition_failed`
+code after partial-composition cleanup. Platforms may specialize the safe code
+through `CompositionFailureCode`; exception text is never sent through this
+early path. Existing adapters that do not opt in keep their original sink.
+
+The hook does not publish application readiness or create a second lifecycle
+owner. Only the application's established readiness path can do that. Detailed
+local composition diagnostics omit credential-shaped messages entirely rather
+than trying to redact only a single word from an unknown credential format.
+
 ## Validation
 
 Run the Package Registry validator, Unity EditMode and PlayMode tests, and

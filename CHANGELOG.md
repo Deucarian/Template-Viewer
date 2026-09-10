@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.2] - 2026-09-08
+
+### Fixed
+
+- Publish safe composition-failure status through an optional early platform
+  sink before transport/UI construction, retaining it across partial cleanup.
+- Reuse that sink for the authoritative application's normal lifecycle;
+  composition and connection status never claim model readiness.
+- Omit credential-shaped exception details, including Bearer headers and
+  quoted, underscored, camelCase, or multiword credential assignments.
+
+### Added
+
+- Regression coverage for early/late failures, cleanup order, sink reuse,
+  observer failure isolation, and diagnostic redaction.
+
 ## [0.3.1] - 2026-09-02
 
 ### Added
