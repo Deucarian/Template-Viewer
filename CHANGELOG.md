@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- Align the shared viewer composition with Camera Navigation 0.3.0, Viewer Navigation 0.2.0 and Theming 1.7.0. Navigation math, runtime controls and editor previews remain owned by those packages.
+- Document package updates versus imported sample copies, Both input handling and render-pipeline activation.
+
 ## [0.3.2] - 2026-09-08
 
 ### Fixed
