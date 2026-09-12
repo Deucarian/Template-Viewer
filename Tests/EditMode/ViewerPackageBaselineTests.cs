@@ -8,7 +8,8 @@ namespace Deucarian.TemplateViewer.Tests
     public sealed class ViewerPackageBaselineTests
     {
         [TestCase("com.deucarian.camera-navigation", "0.3.0")]
-        [TestCase("com.deucarian.viewer-navigation", "0.2.0")]
+        [TestCase("com.deucarian.viewer-navigation", "0.4.0")]
+        [TestCase("com.deucarian.pointer-capture", "0.2.0")]
         [TestCase("com.deucarian.theming", "1.7.0")]
         public void TemplateRequiresTheSharedNavigationAndThemeBaseline(string id, string minimum)
         {

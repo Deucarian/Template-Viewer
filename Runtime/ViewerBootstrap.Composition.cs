@@ -239,6 +239,11 @@ namespace Deucarian.TemplateViewer
             shellPresenter = null;
             TryCleanup(() => presenter?.Dispose());
 
+            Deucarian.PointerCapture.PointerCaptureScope captureScope =
+                pointerCaptureScope;
+            pointerCaptureScope = null;
+            TryCleanup(() => captureScope?.Dispose());
+
             referenceNavigation = null;
             navigationInstaller = null;
             renderingInstaller = null;
