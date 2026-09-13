@@ -3,6 +3,8 @@
   "rootNamespace": "Deucarian.TemplateViewer.Tests",
   "references": [
     "Deucarian.TemplateViewer",
+    "Deucarian.PointerCapture",
+    "Deucarian.ViewerNavigation",
     "Deucarian.TemplateViewer.Tests.Support"
   ],
   "includePlatforms": [],

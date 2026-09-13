@@ -65,6 +65,7 @@ namespace Deucarian.TemplateViewer
         private DiagnosticProviderRegistration diagnosticRegistration;
         private IViewerReferenceNavigation referenceNavigation;
         private ViewerNavigationInstaller navigationInstaller;
+        private Deucarian.PointerCapture.PointerCaptureScope pointerCaptureScope;
         private ViewerRenderingInstaller renderingInstaller;
         private ViewerShellPresenter shellPresenter;
         private ViewerShellStatusAdapter shellStatusAdapter;

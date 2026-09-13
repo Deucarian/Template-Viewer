@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
-- Align the shared viewer composition with Camera Navigation 0.3.0, Viewer Navigation 0.2.0 and Theming 1.7.0. Navigation math, runtime controls and editor previews remain owned by those packages.
+## [0.3.3] - 2026-09-12
+
+### Changed
+
+- Own the reference viewer's Pointer Capture scope and lend its session to Viewer Navigation. Composition failure and teardown release the scope; disable/enable retains the same service without a scene capture component.
+- Require Pointer Capture 0.2.0 and Viewer Navigation 0.4.0 for the explicit session composition boundary.
+- Retain the shared navigation and Theming reference presets. Navigation math, runtime controls and editor previews remain owned by those packages.
 - Document package updates versus imported sample copies, Both input handling and render-pipeline activation.
 
 ## [0.3.2] - 2026-09-08

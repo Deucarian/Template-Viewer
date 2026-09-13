@@ -50,7 +50,8 @@ namespace Deucarian.TemplateViewer
 
             compositionStage = "resolving product feature ownership";
             IViewerVisibilityFeatureFactory visibilityFactory =
-                ResolveVisibilityFeatureFactory(featureBehaviours);
+                ViewerFeatureComposition.ResolveVisibilityFeatureFactory(
+                    featureBehaviours);
             ICommandHandler<ViewerApplication> initializationHandler =
                 ViewerFeatureComposition.ResolveInitializationCommandHandler(
                     featureBehaviours);
@@ -239,6 +240,11 @@ namespace Deucarian.TemplateViewer
             shellPresenter = null;
             TryCleanup(() => presenter?.Dispose());
 
+            Deucarian.PointerCapture.PointerCaptureScope captureScope =
+                pointerCaptureScope;
+            pointerCaptureScope = null;
+            TryCleanup(() => captureScope?.Dispose());
+
             referenceNavigation = null;
             navigationInstaller = null;
             renderingInstaller = null;
@@ -256,32 +262,6 @@ namespace Deucarian.TemplateViewer
             IViewerPlatformAdapter adapter = platformAdapter;
             platformAdapter = null;
             TryCleanup(() => adapter?.Dispose());
-        }
-
-        private static IViewerVisibilityFeatureFactory
-            ResolveVisibilityFeatureFactory(
-                IReadOnlyList<ViewerFeatureBehaviour> features)
-        {
-            IViewerVisibilityFeatureFactory result = null;
-            for (int i = 0; i < features.Count; i++)
-            {
-                IViewerVisibilityFeatureFactory candidate =
-                    features[i].VisibilityFeatureFactory;
-                if (candidate == null)
-                {
-                    continue;
-                }
-
-                if (result != null && !ReferenceEquals(result, candidate))
-                {
-                    throw new InvalidOperationException(
-                        "Only one viewer feature may own model visibility.");
-                }
-
-                result = candidate;
-            }
-
-            return result;
         }
 
         private void OnCommandCompleted(
