@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4 - Unreleased
+
+- Hide the diagnostics information menu in the default viewer composition while retaining the shared settings menu and diagnostic infrastructure.
+
 ## [Unreleased]
 
 ## [0.3.3] - 2026-09-12
