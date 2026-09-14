@@ -1,6 +1,6 @@
 {
   "name": "com.deucarian.template.viewer",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "displayName": "Deucarian Viewer Template",
   "description": "Platform-neutral viewer application core with model loading, presentation, navigation, selection, authentication, commands, diagnostics, and explicit platform adapters.",
   "unity": "6000.0",
@@ -33,10 +33,10 @@
     "com.deucarian.session": "1.0.6",
     "com.deucarian.session.api-integration": "1.2.0",
     "com.deucarian.theming": "1.7.0",
-    "com.deucarian.ui": "0.2.7",
-    "com.deucarian.viewer-navigation": "0.4.0",
+    "com.deucarian.ui": "0.5.0",
+    "com.deucarian.viewer-navigation": "0.4.4",
     "com.deucarian.viewer-rendering": "0.1.0",
-    "com.deucarian.viewer-shell": "0.1.0",
+    "com.deucarian.viewer-shell": "0.1.1",
     "com.deucarian.authentication": "1.0.0",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.unity.modules.uielements": "1.0.0"

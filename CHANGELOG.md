@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5 - Unreleased
+
+- Require the updated UI, navigation and shell packages for consistent controls, semantic menu layering and quiet readiness.
+
 ## 0.3.4 - Unreleased
 
 - Hide the diagnostics information menu in the default viewer composition while retaining the shared settings menu and diagnostic infrastructure.
