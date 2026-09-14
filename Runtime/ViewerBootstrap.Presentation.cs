@@ -75,7 +75,7 @@ namespace Deucarian.TemplateViewer
                     rendering.ThemeProvider,
                     () => ViewerNavigationMotionPreferences.ShouldAnimate,
                     root => ViewerNavigationMovementKeyGuard.Bind(root),
-                    showDiagnostics: true);
+                    showDiagnostics: false);
             return ViewerShellReferenceComposition.Install(
                 transform,
                 rendering.Controller,
