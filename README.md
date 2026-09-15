@@ -20,6 +20,23 @@ duplicating its application logic.
 
 ## Composition
 
+The current shared baseline is Camera Navigation **0.3.0**, Viewer Navigation
+**0.2.0**, and Theming **1.7.0**. The template uses those owners directly;
+navigation/editor improvements do not need to be copied into this package.
+Update the template and its dependency graph together through Package Installer.
+Local development references affect only the project that references them;
+unpublished source edits do not update other projects automatically.
+
+The navigation Input System integration enables **Both** input backends. Unity
+may require a restart after changing the native backend. The default viewer
+rendering composition uses URP; installing URP alone does not select a pipeline
+for unrelated scenes. Preserve the product's configured rendering composition.
+
+Navigation preview Cubes are isolated editor examples, not replacement viewer
+models. Imported samples under `Assets/Samples` are editable copies: package
+updates do not overwrite them or a product's scene/settings. Import a fresh
+copy deliberately when comparing a changed example.
+
 Create a platform bootstrap by deriving from `ViewerBootstrap`:
 
 ```csharp

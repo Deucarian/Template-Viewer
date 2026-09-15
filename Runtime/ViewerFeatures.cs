@@ -172,6 +172,32 @@ namespace Deucarian.TemplateViewer
 
     public static class ViewerFeatureComposition
     {
+        internal static IViewerVisibilityFeatureFactory
+            ResolveVisibilityFeatureFactory(
+                IReadOnlyList<ViewerFeatureBehaviour> features)
+        {
+            IViewerVisibilityFeatureFactory result = null;
+            for (int i = 0; i < features.Count; i++)
+            {
+                IViewerVisibilityFeatureFactory candidate =
+                    features[i].VisibilityFeatureFactory;
+                if (candidate == null)
+                {
+                    continue;
+                }
+
+                if (result != null && !ReferenceEquals(result, candidate))
+                {
+                    throw new InvalidOperationException(
+                        "Only one viewer feature may own model visibility.");
+                }
+
+                result = candidate;
+            }
+
+            return result;
+        }
+
         internal static ViewerFeatureBehaviour[] ResolveBehaviours(
             ViewerBootstrap bootstrap,
             IReadOnlyList<ViewerFeatureBehaviour> explicitFeatures)

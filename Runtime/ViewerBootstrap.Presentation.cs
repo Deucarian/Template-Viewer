@@ -1,4 +1,5 @@
 using System;
+using Deucarian.PointerCapture;
 using Deucarian.Theming;
 using Deucarian.ViewerNavigation;
 using Deucarian.ViewerNavigation.UI;
@@ -50,6 +51,10 @@ namespace Deucarian.TemplateViewer
                 transform,
                 viewerCamera,
                 rendering.ThemeProvider);
+            pointerCaptureScope = new PointerCaptureScope();
+            navigationInstaller.Controller.ConfigurePointerCapture(
+                pointerCaptureScope.OpenSession(
+                    navigationInstaller.Controller.InteractionGate));
             return new ViewerNavigationReferenceAdapter(navigationInstaller);
         }
 
@@ -70,7 +75,7 @@ namespace Deucarian.TemplateViewer
                     rendering.ThemeProvider,
                     () => ViewerNavigationMotionPreferences.ShouldAnimate,
                     root => ViewerNavigationMovementKeyGuard.Bind(root),
-                    showDiagnostics: true);
+                    showDiagnostics: false);
             return ViewerShellReferenceComposition.Install(
                 transform,
                 rendering.Controller,

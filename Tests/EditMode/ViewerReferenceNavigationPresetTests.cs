@@ -214,16 +214,11 @@ namespace Deucarian.TemplateViewer.Tests
                     ViewerShellReferencePreset.Profile));
                 Assert.That(shell.StatusDocument, Is.Not.Null);
                 Assert.That(shell.StatusCard, Is.Not.Null);
-                Assert.That(shell.DiagnosticsView, Is.Not.Null);
+                Assert.That(shell.DiagnosticsView, Is.Null);
                 Assert.That(shell.DisplaySettingsView, Is.Not.Null);
-                Assert.That(shell.MenuCluster, Is.Not.Null);
-                Assert.That(shell.DiagnosticsMenu, Is.Not.Null);
+                Assert.That(shell.MenuCluster, Is.Null);
+                Assert.That(shell.DiagnosticsMenu, Is.Null);
                 Assert.That(shell.DisplaySettingsMenu, Is.Not.Null);
-                Assert.That(
-                    shell.MenuCluster.InformationMenu.RightInset -
-                    shell.MenuCluster.SettingsMenu.RightInset -
-                    DeucarianMorphingMenuMotion.CollapsedSize,
-                    Is.EqualTo(shell.Profile.MenuHorizontalGap));
                 Assert.That(
                     typeof(ReferenceViewerBootstrap).Assembly.GetType(
                         "Deucarian.TemplateViewer.ViewerStatusOverlay"),
@@ -252,12 +247,10 @@ namespace Deucarian.TemplateViewer.Tests
 
                 UIDocument navigationDocument = navigation.Toolbar.Document;
                 UIDocument statusDocument = shell.StatusDocument;
-                UIDocument diagnosticsDocument =
-                    shell.DiagnosticsMenu.Document;
                 UIDocument settingsDocument =
                     shell.DisplaySettingsMenu.Document;
                 UIDocument tooltipDocument =
-                    shell.DiagnosticsMenu.RuntimeTooltip.OverlayDocument;
+                    shell.DisplaySettingsMenu.RuntimeTooltip.OverlayDocument;
 
                 Assert.That(
                     DeucarianUIRuntime.IsConfigured(
@@ -268,11 +261,6 @@ namespace Deucarian.TemplateViewer.Tests
                     DeucarianUIRuntime.IsConfigured(
                         statusDocument,
                         DeucarianUISurfaceRole.Status),
-                    Is.True);
-                Assert.That(
-                    DeucarianUIRuntime.IsConfigured(
-                        diagnosticsDocument,
-                        DeucarianUISurfaceRole.Menu),
                     Is.True);
                 Assert.That(
                     DeucarianUIRuntime.IsConfigured(
@@ -292,15 +280,7 @@ namespace Deucarian.TemplateViewer.Tests
                     Is.GreaterThan(statusDocument.sortingOrder));
                 Assert.That(
                     tooltipDocument.sortingOrder,
-                    Is.GreaterThan(diagnosticsDocument.sortingOrder));
-                Assert.That(
-                    tooltipDocument.sortingOrder,
                     Is.GreaterThan(settingsDocument.sortingOrder));
-                Assert.That(
-                    shell.DiagnosticsMenu.RuntimeTooltip.OverlayDocument,
-                    Is.SameAs(
-                        shell.DisplaySettingsMenu.RuntimeTooltip
-                            .OverlayDocument));
             }
             finally
             {
